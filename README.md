@@ -12,7 +12,7 @@ troubleshooting guides in a single place, organized by product.
 
 The repository is organized into two main folders, one per suite component:
 
-###  [SAP Data Modeler](./Data%20Modeler)
+###  [SAP Data Modeler](./SAP_Data_Modeler)
 Tool for modeling and designing data structures oriented to SAP environments.
 This folder includes:
 
@@ -21,7 +21,7 @@ This folder includes:
 - Use cases and best practices
 - Troubleshooting for common issues
 
-###  [Smart Gateway](./Smart%20Gateway)
+###  [Smart Gateway](./Smart_Gateway)
 Connectivity and integration component that acts as a bridge between systems.
 This folder includes:
 
