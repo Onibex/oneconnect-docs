@@ -8,11 +8,11 @@ SAP systems.
 This repository brings together installation, configuration, operation, and
 troubleshooting guides in a single place, organized by product.
 
-## 📚 Contents
+##  Contents
 
 The repository is organized into two main folders, one per suite component:
 
-### 🧩 [SAP Data Modeler](./Data%20Modeler)
+###  [SAP Data Modeler](./Data%20Modeler)
 Tool for modeling and designing data structures oriented to SAP environments.
 This folder includes:
 
@@ -21,7 +21,7 @@ This folder includes:
 - Use cases and best practices
 - Troubleshooting for common issues
 
-### 🌐 [Smart Gateway](./Smart%20Gateway)
+###  [Smart Gateway](./Smart%20Gateway)
 Connectivity and integration component that acts as a bridge between systems.
 This folder includes:
 
@@ -30,7 +30,7 @@ This folder includes:
 - Administration manual
 - Troubleshooting for common issues
 
-## 🚀 How to use this repository
+##  How to use this repository
 
 1. Navigate to the folder of the product you're interested in
    (**Data Modeler** or **Smart Gateway**).
