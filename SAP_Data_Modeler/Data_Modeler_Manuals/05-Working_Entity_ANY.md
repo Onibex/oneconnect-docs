@@ -49,7 +49,7 @@ Select these options only if your use case requires sending either the tag value
 ## Configuring Main Customizing Data
 
 Just before saving the entity, certain customizations must be defined to extract the data selected in the entity. These options are found in the **"Main Customizing Data"** section.
-<img width="346" height="79" alt="image" src="https://github.com/user-attachments/assets/f6a8710c-3456-4b9c-959e-83bad239c06d" />
+
 
 Here is a general overview of each segment:
 
@@ -57,13 +57,14 @@ Here is a general overview of each segment:
 
 Select **Transactional Data (T)**.
 
-<img width="348" height="40" alt="image" src="https://github.com/user-attachments/assets/1328b6ea-e3cb-4668-9e05-cb41f86229d6" />
+<img width="346" height="79" alt="image" src="https://github.com/user-attachments/assets/f6a8710c-3456-4b9c-959e-83bad239c06d" />
+
 
 ### 2. Description
 
 Provide a general description of the entity and its contents. This section is for informational purposes only.
+<img width="348" height="40" alt="image" src="https://github.com/user-attachments/assets/1328b6ea-e3cb-4668-9e05-cb41f86229d6" />
 
-<img width="1018" height="394" alt="image" src="https://github.com/user-attachments/assets/30537f98-dc4a-415b-af84-83d2bb7a9ade" />
 
 ### 3. Number of Records
 
@@ -95,7 +96,8 @@ Here, you can choose where to store the process log of this entity. There are tw
 ## Save Entity Customization
 
 After finishing the configuration of the entity, to save all the changes, go to **"Save Customizing"** in the header of the entity configuration.
-<img width="1088" height="446" alt="image" src="https://github.com/user-attachments/assets/886b5551-bf1b-42d4-aa74-9200499ce40e" />
+<img width="1018" height="394" alt="image" src="https://github.com/user-attachments/assets/30537f98-dc4a-415b-af84-83d2bb7a9ade" />
+
 
 > ✅ After clicking **"Save"**, the system will begin processing the entity, and it will be created in your entity list.
 
@@ -108,7 +110,8 @@ After the entity is created, it can be executed.
 ### 1. Select and Execute
 
 Double-click on the **ANY** entity and select **"Execute"**.
-<img width="850" height="647" alt="image" src="https://github.com/user-attachments/assets/2f00b7df-f6c4-40eb-badc-0e1101b38020" />
+<img width="1088" height="446" alt="image" src="https://github.com/user-attachments/assets/886b5551-bf1b-42d4-aa74-9200499ce40e" />
+
 
 ### 2. Define the Transmission Parameters
 
@@ -121,7 +124,8 @@ Select the parameters for data transmission:
 | **Table Name** | Select the technical name of the table that you want to send. |
 
 Click **"Execute"** at the bottom of the popup, or press **`F8`**.
-<img width="639" height="690" alt="image" src="https://github.com/user-attachments/assets/f5c2aab0-3b2f-4de4-9334-36cff96a179f" />
+<img width="850" height="647" alt="image" src="https://github.com/user-attachments/assets/2f00b7df-f6c4-40eb-badc-0e1101b38020" />
+
 
 ### 3. Select Table Alias and Fields
 
@@ -134,7 +138,9 @@ In the next screen, you will be prompted to select the following information:
 | **Selection** | If you wish to use a field as a selection criterion for sending information in batch mode, check the box labeled **"Selection"** next to the corresponding field. |
 
 After finishing the selection and configuration, click on **"Execute"** at the top of the screen, or press **`F8`**.
-<img width="1363" height="765" alt="image" src="https://github.com/user-attachments/assets/6ed63cbf-0de2-47d8-bac8-eaa551783e02" />
+<img width="639" height="690" alt="image" src="https://github.com/user-attachments/assets/f5c2aab0-3b2f-4de4-9334-36cff96a179f" />
+
+
 
 ---
 
@@ -147,7 +153,8 @@ To configure the criteria:
 1. Double-click the field to be set as the sending criterion to display the selection options.
 2. Select the criterion for sending the entity.
 3. Once criteria are defined, click **"Save"**.
-<img width="860" height="738" alt="image" src="https://github.com/user-attachments/assets/a417ed1a-91bb-4cc4-a276-63928f046450" />
+<img width="1363" height="765" alt="image" src="https://github.com/user-attachments/assets/6ed63cbf-0de2-47d8-bac8-eaa551783e02" />
+
 
 ---
 
@@ -157,7 +164,8 @@ Select the execution mode for data sending:
 
 - **Online:** Recommended when the data volume is small, or when the process does not exceed the available SAP user memory.
 - **Background:** Recommended for large data volumes to prevent memory issues. Also useful for scheduling execution at a specific date and time.
-<img width="739" height="317" alt="image" src="https://github.com/user-attachments/assets/aae45433-6035-4a45-b625-bbe0b6d9a77e" />
+<img width="860" height="738" alt="image" src="https://github.com/user-attachments/assets/a417ed1a-91bb-4cc4-a276-63928f046450" />
+
 
 ### Online Mode Execution
 
@@ -169,6 +177,6 @@ If executed in Online mode, a summary log will appear at the end, displaying:
 | **TOTAL_SIZE_SENT** | Total bytes sent. |
 | **TOTAL_NUMBER_OF_REQUEST** | Number of requests made. |
 | **TOTAL_NUMBER_OF_RECORDS** | Number of records sent for the entity. |
-![Uploading image.png…]()
+<img width="739" height="317" alt="image" src="https://github.com/user-attachments/assets/aae45433-6035-4a45-b625-bbe0b6d9a77e" />
 
 > ✅ Check the destination system to verify that the information was received correctly.
