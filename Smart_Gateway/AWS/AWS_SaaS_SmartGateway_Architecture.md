@@ -8,122 +8,47 @@ Onibex hosts the Smart Gateway in its own AWS Cloud infrastructure. Two connecti
 
 > **Best for:** Customers with on-premise SAP or SAP outside of AWS.
 
-<img width="1411" height="864" alt="smartgateway_NT_ALL_onibex-NEW AWS-SasS_Trad1" src="https://github.com/user-attachments/assets/355346db-260c-481e-aa70-0adb6f7c1eac" />
+<img width="1175" height="774" alt="smartgateway_NT_ALL_onibex-NEW AWS-SasS_Trad" src="https://github.com/user-attachments/assets/1e72e6d0-06aa-4345-9398-46ef6c12b3ec" />
 
 ## Overview
 
 In this deployment model, Onibex hosts the Smart Gateway in its own AWS Cloud. SAP
-ECC/S4HANA connects directly to Onibex's VPC over the internet using **RFC Type G +
-HTTP/HTTPS**. The ALB is configured with a **private IP only**, meaning no
-internet-facing endpoint is exposed at any point.
-
-This option supports two connectivity modes depending on the customer's security
-requirements: **Private IP only** or **Private IP + SSL/TLS**.
+ECC/S4HANA connects directly to Onibex's VPC using **RFC Type G + HTTPS**. The
+connection is resolved through a **Fully Qualified Domain Name (FQDN)** with
+**SSL/TLS** enforced at the ALB layer.
 
 ## How It Works
 
-SAP ECC/S4HANA initiates an outbound **RFC Type G** connection over **HTTP/HTTPS**
-toward Onibex's AWS Cloud. The connection originates entirely from SAP with no
-additional network infrastructure required on the customer side.
+SAP ECC/S4HANA initiates an outbound **RFC Type G** connection over **HTTPS**
+toward Onibex's AWS Cloud using a **Fully Qualified Domain Name**. The connection
+originates entirely from SAP with no additional network infrastructure required on
+the customer side.
 
 ### Traffic flow
 
-1. **SAP ECC/S4HANA** sends data via RFC Type G + HTTP/HTTPS toward Onibex's VPC.
-2. An **ENI** receives the inbound traffic and forwards it to the **private ALB**.
-3. The **ALB** (private IP only, no public endpoint) distributes traffic across
-   **two private subnets** in separate Availability Zones, each running a
-   **Smart Gateway + Kafka Connect / Onibex Connector** pair.
+1. **SAP ECC/S4HANA** sends data via RFC Type G + HTTPS to Onibex's FQDN.
+2. An **ENI** receives the inbound traffic and forwards it to the **ALB**.
+3. The **ALB** terminates SSL/TLS and distributes traffic across separate Availability Zones, each pointing to a
+   **Smart Gateway + Kafka Connect / Onibex Connector**.
 4. **Onibex Premium Connectors** deliver the processed data to the **Target Cloud**
    via **AWS Private Link**.
 
-## ALB Connectivity Modes
+## Connectivity
 
-This option supports two modes. The choice depends on the customer's internal
-security policy and whether end-to-end encryption is required.
-
-### Mode 1 - Private IP only (HTTP)
-
-SAP communicates with the ALB over plain HTTP. No SSL certificate is required.
-The private IP ALB ensures the endpoint is not reachable from the public internet.
-
-| Aspect | Detail |
-|---|---|
-| Protocol | HTTP |
-| Encryption in transit | No |
-| Certificate required | No |
-| Complexity | Low |
-| Best for | Customers where endpoint isolation is sufficient |
-
-### Mode 2 - Private IP + SSL/TLS (HTTPS)
-
-SAP communicates with the ALB over HTTPS. SSL/TLS is terminated at the ALB layer,
-adding encryption in transit on top of the private endpoint. This is recommended
-for regulated industries or customers with policies requiring end-to-end encryption.
+SAP communicates with the ALB using a **Fully Qualified Domain Name (FQDN)** or
+a **custom domain** over HTTPS. SSL/TLS is terminated at the ALB layer. Onibex
+provides the FQDN to be configured in the SAP RFC destination (SM59) during the
+onboarding process. A customer-provided domain can be used if required by internal
+DNS governance or compliance policy.
 
 | Aspect | Detail |
 |---|---|
 | Protocol | HTTPS |
+| SAP destination | FQDN or custom domain |
 | Encryption in transit | Yes (TLS terminated at ALB) |
-| Certificate required | Yes (managed at ALB) |
-| Complexity | Low - Medium |
-| Best for | Regulated industries, compliance-sensitive workloads |
+| Certificate | Onibex managed or customer provided |
+| Complexity | Low |
 
-> Both modes use the same architecture. The only difference is whether SSL/TLS
-> is enabled at the ALB layer. No additional infrastructure is required to switch
-> between modes.
-
----
-
-## Components
-
-| Component | Location | Role |
-|---|---|---|
-| **SAP ECC / S4HANA** | Customer SAP environment (private subnet) | Data source - initiates RFC Type G connection |
-| **ENI** | Onibex VPC - private subnet | Private ingress point |
-| **ALB (private IP)** | Onibex VPC - private subnet | Load balancing across AZs; SSL/TLS optional |
-| **Smart Gateway** | Onibex VPC - private subnet | SAP data extraction and transformation |
-| **Kafka Connect / Onibex Connector** | Onibex VPC - private subnet | Event streaming and target delivery |
-| **Private Link** | Onibex VPC | Private egress to Target Cloud |
-| **Onibex Premium Connectors** | Onibex VPC | Downstream integration to Target Cloud |
-
----
-
-## Network and Security
-
-| Dimension | Detail |
-|---|---|
-| Network path | SAP outbound -> Onibex VPC private ALB |
-| Internet exposure | None (ALB is private IP only) |
-| Public IPs | None assigned to any component |
-| ALB endpoint | Private IP only |
-| SAP connectivity | RFC Type G + HTTP or HTTPS |
-| Encryption in transit | Optional (SSL/TLS at ALB) |
-| Customer infra required | None |
-| Access control | NACLs + Security Groups per subnet |
-
----
-
-## Key Characteristics
-
-| Dimension | Detail |
-|---|---|
-| Smart Gateway hosted by | Onibex |
-| SAP environment | On-premise / non-AWS |
-| Customer AWS infra required | None |
-| Internet exposure | None (ALB private IP only) |
-| SSL/TLS | Optional at ALB layer |
-| Deployment complexity | Low |
-
----
-
-## Notes
-
-- This option requires no AWS account or network infrastructure on the customer side.
-  SAP only needs outbound connectivity to Onibex's endpoint.
-- SSL/TLS mode requires a valid certificate to be provisioned at the ALB. Onibex
-  can manage this certificate.
-- This is the simplest and fastest onboarding path for customers with on-premise
-  or non-AWS SAP environments.
 
 ---
 
@@ -131,8 +56,7 @@ for regulated industries or customers with policies requiring end-to-end encrypt
 
 > **Best for:** Enterprise customers on SAP RISE in AWS requiring private routing.
 
-<img width="1771" height="1088" alt="smartgateway_NT_ALL_onibex-NEW AWS-SasS_TGW1" src="https://github.com/user-attachments/assets/5843aaac-f4dc-4f4c-ae6e-2d5fb8dd1bae" />
-
+<img width="1651" height="1018" alt="smartgateway_NT_ALL_onibex-NEW AWS-SasS_TGW" src="https://github.com/user-attachments/assets/61ac8712-4d01-4f02-81d6-58e8ebec346b" />
 
 ### How it works
 
