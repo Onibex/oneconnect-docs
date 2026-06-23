@@ -17,7 +17,7 @@ data from transiting third-party cloud environments.
 
 ## Architecture Diagram
 
-<img width="1881" height="981" alt="smartgateway_NT_ALL_onibex-NEW AWS-BYOC" src="https://github.com/user-attachments/assets/6debf473-45ff-4bc9-b2da-759364965452" />
+<img width="1761" height="982" alt="smartgateway_NT_ALL_onibex-NEW AWS-BYOC" src="https://github.com/user-attachments/assets/172584b6-0c34-45c0-bd90-ce5772f09d01" />
 
 ---
 
