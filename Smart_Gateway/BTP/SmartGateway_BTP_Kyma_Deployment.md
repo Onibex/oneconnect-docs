@@ -1,5 +1,3 @@
-# Smart Gateway BTP Kyma Deployment Guide
-
 ## Overview
 
 This manual guides you through the fully private deployment of OneConnect on **SAP BTP Kyma (AWS EKS)**. All access is routed through **SAP Cloud Connector**. No services are exposed to the public internet.
@@ -251,6 +249,10 @@ Think of the Istio sidecar as a security co-pilot alongside each pod. It handles
 2. Go to **Modules → Modify Modules → Add**.
 3. Select **istio** and click **Add / Save**.
 4. Wait until the module status shows **Ready**.
+<img width="1053" height="408" alt="image" src="https://github.com/user-attachments/assets/4ec07b51-8213-4b75-b814-668bb90217eb" />
+<img width="1050" height="396" alt="image" src="https://github.com/user-attachments/assets/339d93e9-7769-4f11-82af-b57d2c39f26d" />
+<img width="1050" height="212" alt="image" src="https://github.com/user-attachments/assets/0b7d26d9-1784-429c-bf16-7b083830c2c8" />
+<img width="1050" height="221" alt="image" src="https://github.com/user-attachments/assets/a4a7d3f3-ec69-4dd3-9ff6-de4c6ea22364" />
 
 > ℹ️ Activating the Istio module in Kyma Dashboard is a key step to enable sidecar injection and ensure mTLS authentication in the Cloud Connector. Each pod displays `2/2 READY` once the application container and the security sidecar are running together.
 
