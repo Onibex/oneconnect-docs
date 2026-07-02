@@ -159,4 +159,4 @@ The full workflow is:
 7. **Download and export the Kyma kubeconfig**.
 8. **Verify the connection** by running `kubectl get namespaces` and completing OIDC login via the browser tunnel.
 
-Once these steps are complete, you can proceed with the Smart Gateway deployment on Kyma. See the [Smart Gateway BTP Kyma Deployment Guide](./README.md) for the full deployment workflow.
+Once these steps are complete, you can proceed with the Smart Gateway deployment on Kyma. See the [Smart Gateway BTP Kyma Deployment Guide](./SmartGateway_BTP_Kyma_Deployment.md) for the full deployment workflow.
