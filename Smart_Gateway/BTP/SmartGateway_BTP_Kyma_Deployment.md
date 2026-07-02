@@ -26,7 +26,7 @@ Follow the steps below in order.
 
 It is necessary to install **kubectl** and **Helm v3**.
 
-For detailed instructions, please refer to: [How to connect Kubectl to BTP Kyma environment using AWS EC2](https://help.onibex.com/portal/en/kb/articles/how-to-connect-kubectl-to-btp-kyma-environment-using-aws-ec2).
+For detailed instructions, please refer to: [How to connect Kubectl to BTP Kyma environment using AWS EC2](https://github.com/Onibex/OnibexOneConnect/blob/main/Smart_Gateway/BTP/Connect_Kubectl_to_Kyma.md).
 
 ---
 
