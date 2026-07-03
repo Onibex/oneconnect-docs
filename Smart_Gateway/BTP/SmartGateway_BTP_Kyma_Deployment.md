@@ -2,6 +2,8 @@
 
 This manual guides you through the fully private deployment of OneConnect on **SAP BTP Kyma (AWS EKS)**. All access is routed through **SAP Cloud Connector**. No services are exposed to the public internet.
 
+> ℹ️ **Note:** This manual covers **Cloud Connector mode** (`cloudConnector.enabled=true`). The same chart also supports an **open LoadBalancer mode** (`cloudConnector.enabled=false`, the default), which exposes `apigateway` and `frontend` through LoadBalancer services instead of the tunnel. Also note that **Kafka Connect is no longer deployed by the Kafka chart** — the Smart Gateway (Builder) launches a Kafka Connect deployment dynamically for each workspace.
+
 ---
 
 ## Installation Flow Overview
@@ -62,54 +64,34 @@ strimzi-cluster-operator-xxxx   1/1   Running
 
 ## 2. Deploy Kafka Stack
 
-Deploy the full Kafka stack: **Kafka 4.2** in KRaft mode (not compatible with ZooKeeper), **Confluent Schema Registry 7.6.0**, and **Kafka Connect**.
+Deploy the Kafka stack: **Kafka 4.2** in KRaft mode (not compatible with ZooKeeper), **Confluent Schema Registry 7.6.0**, and the **AKHQ** UI.
 
-Kafka Connect is the component that runs connectors to external databases and platforms such as MySQL and Databricks.
+> ℹ️ **Kafka Connect is no longer part of this chart.** The Smart Gateway (Builder) launches a Kafka Connect deployment dynamically for each workspace, using the image version defined by `DOCKER_IMAGE_VERSION_KAFKACONNECT` in the OneConnect chart. You do **not** deploy Connect here.
 
 > ℹ️ **Note:** Deployment order matters. Always follow the phases below in sequence.
 
 ### Phase 1: Deploy the Kafka Cluster
 
-Replace `[Docker-token]`, `[SUBACCOUNT-ID]`, and `[LOCATION-ID]` with your actual values before running the command.
+Replace `[SUBACCOUNT-ID]` and `[LOCATION-ID]` with your actual values before running the command. The `akhq.serviceMapping.*` flags are only needed if you want to reach AKHQ through the Cloud Connector tunnel (omit them for LoadBalancer / open mode).
+
+> ℹ️ **The Kafka chart no longer needs a Docker Hub token.** The custom Kafka Connect image is pulled later, in the OneConnect chart (Section 3), which replicates the `docker-hub-credentials` secret into the `kafka` namespace.
 
 | Placeholder | Description |
 |---|---|
-| `[Docker-token]` | Your Docker Hub personal access token (e.g. `dckr_pat_xxxxxxxxxxxx`). |
 | `[SUBACCOUNT-ID]` | SAP BTP Subaccount ID. |
 | `[LOCATION-ID]` | Cloud Connector Location ID. |
 
 Run the following command:
 
 ~~~bash
-cd kafka-platform/
-
 helm install kafka-platform ./kafka-platform \
   --namespace kafka \
-  --values kafka-platform/values.yaml \
-  --set dockerHub.token=[Docker-token] \
   --set akhq.serviceMapping.enabled=true \
   --set akhq.serviceMapping.subaccountId="[SUBACCOUNT-ID]" \
   --set akhq.serviceMapping.locationId="[LOCATION-ID]"
 ~~~
 
-Create the AKHQ service:
-
-~~~bash
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: akhq
-  namespace: kafka
-spec:
-  selector:
-    app: akhq
-  ports:
-    - port: 8080
-      targetPort: 8080
-  type: ClusterIP
-EOF
-~~~
+> ℹ️ The `akhq` ClusterIP service is created automatically by the chart — no manual step is required.
 
 Wait until all four pods are **Running** before moving to the next phase:
 
@@ -152,12 +134,14 @@ cd helm/one_source-helm-deployment-*/
 helm install oneconnect . \
   --namespace oneconnect \
   --create-namespace \
-  --values values-aws.yaml \
+  --values values.yaml \
   --set dockerHub.token=[Docker-token] \
   --set cloudConnector.enabled=true \
   --set cloudConnector.locationId="[LOCATION-ID]" \
   --set cloudConnector.subaccountId="[SUBACCOUNT-ID]"
 ~~~
+
+> ℹ️ The `dockerHub.token` here also creates the `docker-hub-credentials` secret in both the `oneconnect` and `kafka` namespaces, which the dynamically-launched Kafka Connect uses to pull its image.
 
 > ℹ️ **Note:** The `locationId` and `subaccountId` flags are both required. If either is missing, the Helm chart will display a clear error message.
 
@@ -656,7 +640,7 @@ Re-run with all required flags:
 ~~~bash
 helm upgrade oneconnect . \
   --namespace oneconnect \
-  --values values-aws.yaml \
+  --values values.yaml \
   --set dockerHub.token=[your-docker-token] \
   --set cloudConnector.enabled=true \
   --set cloudConnector.locationId="[LOCATION-ID]" \
@@ -729,7 +713,7 @@ kubectl port-forward svc/grafana 3000:3000 -n observability
 | **Observability** | A monitoring stack providing dashboards, logs, and distributed tracing. |
 | **Docker Hub** | Container image registry, an "app store" for Docker images. Requires an access token. |
 | **AKHQ** | A web-based dashboard for Kafka. Used to browse topics, inspect messages, and monitor consumers. |
-| **Kafka Connect** | A Kafka component that runs connectors to external systems such as databases. |
+| **Kafka Connect** | A Kafka component that runs connectors to external systems such as databases. In OneConnect it is launched dynamically per workspace by the Smart Gateway (Builder), not by the Kafka chart. |
 
 ---
 
