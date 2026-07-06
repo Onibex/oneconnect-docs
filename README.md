@@ -1,18 +1,24 @@
+<img width="1175" height="431" alt="image" src="https://github.com/user-attachments/assets/53e906b2-d9f2-4633-8392-d48145593fb4" />
+
+
 # OneConnect
 
-**OneConnect** is the central documentation repository for the OneConnect
-suite, which integrates the **SAP Data Modeler** and **Smart Gateway**
-components to streamline connectivity, data modeling, and integration with
-SAP systems.
+**OneConnect** is a real-time data integration platform that connects to SAP
+systems and streams data to multiple destinations. This repository serves as
+the central documentation hub for the OneConnect suite, which combines the
+**SAP Data Modeler** and **Smart Gateway** components to deliver seamless
+connectivity, data modeling, and integration between SAP and external
+systems.
 
-This repository brings together installation, configuration, operation, and
-troubleshooting guides in a single place, organized by product.
+Here you'll find installation, configuration, operation, and troubleshooting
+guides for the entire suite, organized by product.
 
-##  Contents
+## Contents
 
 The repository is organized into two main folders, one per suite component:
 
-###  [SAP Data Modeler](./SAP_Data_Modeler)
+### [SAP Data Modeler](./SAP_Data_Modeler)
+
 Tool for modeling and designing data structures oriented to SAP environments.
 This folder includes:
 
@@ -21,16 +27,18 @@ This folder includes:
 - Use cases and best practices
 - Troubleshooting for common issues
 
-###  [Smart Gateway](./Smart_Gateway)
-Connectivity and integration component that acts as a bridge between systems.
-This folder includes:
+### [Smart Gateway](./Smart_Gateway)
+
+Connectivity and integration component that acts as a bridge between SAP
+systems and target destinations, enabling real-time data flow. This folder
+includes:
 
 - Installation guide and prerequisites
 - Connection configuration
 - Administration manual
 - Troubleshooting for common issues
 
-##  How to use this repository
+## How to use this repository
 
 1. Navigate to the folder of the product you're interested in
    (**Data Modeler** or **Smart Gateway**).
@@ -39,6 +47,5 @@ This folder includes:
 
 All documents are in Markdown (`.md`) format, so they render directly on
 GitHub with no need to download them.
-
 
 _Maintained by [Onibex](https://github.com/onibex)._
