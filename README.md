@@ -31,7 +31,7 @@ troubleshooting guides in a single place, organized by product.
 
 ## Contents
 
-The repository is organized into two main folders, one per suite component:
+The repository is organized into three main folders:
 
 ### [SAP Data Modeler](./SAP_Data_Modeler)
 
@@ -54,10 +54,22 @@ includes:
 - Administration manual
 - Troubleshooting for common issues
 
+### [Technical Information](./Technical_Information)
+
+General and business-oriented documentation about the OneConnect platform as
+a whole, independent of a specific component. This folder includes:
+
+- OneConnect overview
+- Architecture and components
+- Onibex Marketplace
+- Premium connectors
+- The 15-hour business value challenge
+- Frequently asked questions (FAQ)
+
 ## How to use this repository
 
 1. Navigate to the folder of the product you're interested in
-   (**Data Modeler** or **Smart Gateway**).
+   (**Data Modeler**, **Smart Gateway**, or **Technical Information**).
 2. Start with the `README.md` inside the folder, which serves as the index.
 3. Open the specific manual you need to consult.
 
