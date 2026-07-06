@@ -6,7 +6,7 @@
 **OneConnect** is a real-time data integration platform that connects to SAP
 systems and streams data to multiple destinations with minimal latency. It
 enables organizations to unlock the value of their SAP data by making it
-available in real time to downstream systems — such as data lakes, analytics
+available in real time to downstream systems such as data lakes, analytics
 platforms, and third-party applications without relying on traditional
 batch extraction methods.
 
