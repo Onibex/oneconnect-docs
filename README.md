@@ -3,17 +3,31 @@
 
 # OneConnect
 
-**OneConnect is a real-time data integration platform that connects to SAP
-systems and streams data to multiple destinations.**
+**OneConnect** is a real-time data integration platform that connects to SAP
+systems and streams data to multiple destinations with minimal latency. It
+enables organizations to unlock the value of their SAP data by making it
+available in real time to downstream systems — such as data lakes, analytics
+platforms, and third-party applications without relying on traditional
+batch extraction methods.
 
-This repository serves as
-the central documentation hub for the OneConnect suite, which combines the
-**SAP Data Modeler** and **Smart Gateway** components to deliver seamless
-connectivity, data modeling, and integration between SAP and external
-systems.
+The platform is built around two core components:
 
-Here you'll find installation, configuration, operation, and troubleshooting
-guides for the entire suite, organized by product.
+- **SAP Data Modeler**: models, designs, and structures SAP data for
+  extraction, defining which entities, tables, and views are exposed for
+  integration.
+- **Smart Gateway**: acts as the connectivity bridge, capturing changes
+  from SAP in real time and routing them to one or multiple target
+  destinations.
+
+Together, these components replace slow, resource-intensive batch jobs with
+a continuous, event-driven flow of data, supporting use cases like
+real-time analytics, operational reporting, data replication to cloud
+platforms, and synchronization across enterprise systems, all while
+reducing the load on SAP's core infrastructure.
+
+This repository serves as the central documentation hub for the OneConnect
+suite, bringing together installation, configuration, operation, and
+troubleshooting guides in a single place, organized by product.
 
 ## Contents
 
