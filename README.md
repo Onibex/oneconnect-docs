@@ -3,8 +3,10 @@
 
 # OneConnect
 
-**OneConnect** is a real-time data integration platform that connects to SAP
-systems and streams data to multiple destinations. This repository serves as
+**OneConnect is a real-time data integration platform that connects to SAP
+systems and streams data to multiple destinations.**
+
+This repository serves as
 the central documentation hub for the OneConnect suite, which combines the
 **SAP Data Modeler** and **Smart Gateway** components to deliver seamless
 connectivity, data modeling, and integration between SAP and external
