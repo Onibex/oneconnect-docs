@@ -1,8 +1,5 @@
 # 📊 OneConnect — Logs Module (Dashboard)
 
-> **Last updated:** July 2026
-> **Frontend version:** v2.9.0+
-
 ---
 
 ## How to Access
