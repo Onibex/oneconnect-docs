@@ -32,6 +32,7 @@ A dropdown menu will appear with the available add-on options.
 From the dropdown menu, select the **"Add Traceability"** option.
 
 > ℹ️ **Note:** If the option appears as **"Traceability Configured"** and is disabled, it means this SAP Link already has a Traceability endpoint configured. Each SAP Link can only have one Traceability endpoint.
+<img width="1637" height="431" alt="image" src="https://github.com/user-attachments/assets/5e647537-06fb-4c64-9b98-7eb429f92381" />
 
 ---
 
@@ -49,6 +50,9 @@ The Traceability configuration wizard consists of **2 stages**:
 
 Fill in the **Name** field and click **"Next"**.
 
+<img width="1623" height="583" alt="image" src="https://github.com/user-attachments/assets/3befab61-a3ef-490b-8e36-a555f4c8a80d" />
+
+
 ### Stage 2: Authentication Credentials
 
 In this stage, provide the credentials that SAP will use to authenticate when sending data to this Traceability endpoint:
@@ -61,6 +65,9 @@ In this stage, provide the credentials that SAP will use to authenticate when se
 > ⚠️ **Important:** Save these credentials carefully, as they **cannot be viewed again** through the web application once the configuration is saved.
 
 Enter both fields and click **"Save Configuration"**.
+
+<img width="1317" height="565" alt="image" src="https://github.com/user-attachments/assets/795ee90c-66f7-46df-8156-2186dba91630" />
+
 
 ---
 
@@ -84,7 +91,10 @@ After creating the Traceability endpoint:
 3. Click the **"Traceability"** tab to view the generated endpoint URL.
 4. Use the **copy icon** 📋 to copy the URL to your clipboard.
 
-> 📌 **Important:** This URL must be configured in your SAP system’s RFC destination settings. Once configured, SAP errors will automatically be sent through this bridge and become visible in the **Logs** section of OneConnect.
+<img width="1626" height="567" alt="image" src="https://github.com/user-attachments/assets/fcbbf490-fab9-4d11-8fb6-f9477f035dde" />
+
+
+> 📌 **Important:** This URL must be configured in your SAP system’s settings. Once configured, SAP errors will automatically be sent through this bridge and become visible in the **Logs** section of OneConnect.
 
 ---
 
