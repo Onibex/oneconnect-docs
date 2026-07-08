@@ -4,6 +4,8 @@
 
 Only **administrator users** with the appropriate permissions can add new users to the OneConnect platform.
 
+> 📌 **Prerequisite:** The [Email Service (SMTP)](10-Configuring_Email_Service_SMTP.md) must be configured before adding new users. The platform sends activation and notification emails through this service.
+
 To access the OneConnect Cloud platform, use the default administrator account that is created automatically. Please contact the Onibex team to obtain the password.
 
 > ℹ️ **Default administrator account**
