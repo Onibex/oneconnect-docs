@@ -12,17 +12,17 @@ The platform uses a dedicated email service to send account-related emails (user
 
 The following environment variables must be added to the email builder deployment in Kubernetes:
 
-| Kubernetes Variable | Description | Example |
+| Kubernetes Variable | Description |
 |---|---|---|
-| `EMAIL_SOURCEADDRESS` | Sender name and email that appears in the "From" field | `Onibex One Connect <contact@onibex.com>` |
-| `EMAIL_SMTPHOST` | Hostname of your SMTP server | `smtp.zeptomail.com` |
-| `EMAIL_SMTPPORT` | Port used by the SMTP server | `587` |
-| `EMAIL_SMTPAUTH` | Whether authentication is required (`true`/`false`) | `true` |
-| `EMAIL_SMTPSTARTTLSENABLE` | Whether STARTTLS is enabled (`true`/`false`) | `true` |
-| `EMAIL_SMTPFROM` | The sender email address | `noreply@yourcompany.com` |
-| `EMAIL_SMTPSSLPROTOCOLS` | SSL/TLS protocol version | `TLSv1.2` |
-| `EMAIL_USER` | SMTP username or API key | `emailapikey` |
-| `EMAIL_PASSWORD` | SMTP password or API secret | `wSsVR60g+x/yCv0...` |
+| `EMAIL_SOURCEADDRESS` | Sender name and email that appears in the "From" field | 
+| `EMAIL_SMTPHOST` | Hostname of your SMTP server |
+| `EMAIL_SMTPPORT` | Port used by the SMTP server |
+| `EMAIL_SMTPAUTH` | Whether authentication is required (`true`/`false`) |
+| `EMAIL_SMTPSTARTTLSENABLE` | Whether STARTTLS is enabled (`true`/`false`) |
+| `EMAIL_SMTPFROM` | The sender email address |
+| `EMAIL_SMTPSSLPROTOCOLS` | SSL/TLS protocol version |
+| `EMAIL_USER` | SMTP username or API key |
+| `EMAIL_PASSWORD` | SMTP password or API secret |
 
 ---
 
@@ -33,11 +33,11 @@ Add these variables to your email builder deployment:
 ```yaml
 env:
   - name: EMAIL_SOURCEADDRESS
-    value: "Onibex One Connect <contact@onibex.com>"
+    value: "Email Source address <contact@example.com>"
   - name: EMAIL_SMTPHOST
-    value: "smtp.zeptomail.com"
+    value: "smtp.host.com"
   - name: EMAIL_SMTPPORT
-    value: "587"
+    value: "SMTPORT"
   - name: EMAIL_SMTPAUTH
     value: "true"
   - name: EMAIL_SMTPSTARTTLSENABLE
@@ -47,9 +47,9 @@ env:
   - name: EMAIL_SMTPSSLPROTOCOLS
     value: "TLSv1.2"
   - name: EMAIL_USER
-    value: "emailapikey"
+    value: "emailuser"
   - name: EMAIL_PASSWORD
-    value: "your-smtp-password-or-api-key"
+    value: "emailpassword"
 ```
 
 After applying the configuration, redeploy the email builder service.
