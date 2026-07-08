@@ -37,7 +37,7 @@ env:
 
 ## Frontend Configuration
 
-The **"Add Email"** button in the Logs dashboard is also hidden by default. To make it visible to users, set the following environment variable in the **connect-with-confluent** (frontend) deployment:
+The **"Add Email"** button in the Logs dashboard is also hidden by default. To make it visible to users, set the following environment variable in the **frontendoneconnect** deployment:
 
 ```yaml
 env:
@@ -45,7 +45,7 @@ env:
     value: "true"
 ```
 
-When this is enabled, users can manage which email addresses receive log alerts from their SAP Connector's workspace.
+When this is enabled, users can manage which email addresses receive log alerts from their SAP Links.
 
 ---
 
@@ -55,7 +55,7 @@ To fully enable log email alerts, configure **all three** deployments:
 
 | Deployment | Variable | Value |
 |---|---|---|
-| `backend-email` | `EMAIL_*` | SMTP server credentials |
+| `emailbuilder` | `EMAIL_*` | SMTP server credentials |
 | `oneconnect-logs` | `LOGEMAILSENDER_ENABLE` | `true` |
 | `oneconnect-logs` | `TARGET_URL_EMAIL` | Email builder URL |
-| `connect-with-confluent` | `NEXT_PUBLIC_ENABLE_ADD_EMAIL_LOGS_BUTTON` | `true` |
+| `frontendoneconnect` | `NEXT_PUBLIC_SMTP_ENABLED` | `true` |
