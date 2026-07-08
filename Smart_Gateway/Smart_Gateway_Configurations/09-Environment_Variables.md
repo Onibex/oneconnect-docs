@@ -1,8 +1,8 @@
 # Smart Gateway Configuration Manual
 
-## Environment Variables Reference
+## Web application Variables Reference
 
-The OneConnect Smart Gateway platform uses environment variables to control certain features and behaviors. This document describes the available configuration options.
+The OneConnect Smart Gateway web application uses environment variables to control certain features and behaviors. This document describes the available configuration options.
 
 ---
 
