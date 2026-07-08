@@ -13,8 +13,8 @@ The platform uses a dedicated email service to send account-related emails (user
 The following environment variables must be added to the email builder deployment in Kubernetes:
 
 | Kubernetes Variable | Description |
-|---|---|---|
-| `EMAIL_SOURCEADDRESS` | Sender name and email that appears in the "From" field | 
+|---|---|
+| `EMAIL_SOURCEADDRESS` | Sender name and email that appears in the "From" field |
 | `EMAIL_SMTPHOST` | Hostname of your SMTP server |
 | `EMAIL_SMTPPORT` | Port used by the SMTP server |
 | `EMAIL_SMTPAUTH` | Whether authentication is required (`true`/`false`) |
