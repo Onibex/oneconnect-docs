@@ -10,7 +10,8 @@ The Logs section allows you to view and analyze all the activity logs generated 
 
 1. Open your SAP Links dashboard.
 2. Click on the **"Go to Logs"** button.
-3. A table will appear showing the most recent log entries.
+<img width="1898" height="577" alt="image" src="https://github.com/user-attachments/assets/c470cdf4-f2bf-418a-b923-534020ca05cb" />
+4. A table will appear showing the most recent log entries.
 
 ---
 
@@ -29,6 +30,9 @@ Use the controls at the top of the screen to narrow down the logs you want to se
 | **End Time** *(Range mode)* | Pick an end time in 12-hour AM/PM format. |
 | **Level** | Filter by severity: `ALL`, `ERROR`, `WARN`, or `FATAL`. |
 | **Source** | Filter by origin: `ALL`, `PRODUCER`, `CONSUMER`, or `SAP`. |
+
+<img width="1645" height="678" alt="image" src="https://github.com/user-attachments/assets/a8831d6e-fc97-491e-88fb-83f26b42cdac" />
+
 
 > ⚠️ **Important — Time Zone:** All dates and times are handled in **UTC** automatically. You only need to select the time on your local clock — the system converts it for you. No manual conversion is required.
 
@@ -54,12 +58,13 @@ Each row in the table represents one log entry with the following columns:
 If you need to see the complete log entry:
 
 1. Click the document icon 📄 in the **Actions** column.
-2. A pop-up window will open showing the full details:
+   <img width="1631" height="447" alt="image" src="https://github.com/user-attachments/assets/5b8d2b60-fe3f-44d0-8b84-deaa7c63f708" />
+3. A pop-up window will open showing the full details:
    - Complete timestamp with seconds.
    - Level, Source, and Logger information.
    - The full message text in a scrollable area.
-3. Click **"Copy Message"** to copy the entire message to your clipboard.
 4. Click **"Close"** to dismiss the pop-up.
+<img width="1643" height="857" alt="image" src="https://github.com/user-attachments/assets/05020ac6-1961-4802-accd-ce24c06356b9" />
 
 ---
 
@@ -79,7 +84,7 @@ You can configure email alerts to be notified when `ERROR` or `FATAL` logs occur
 
 ### Enabling the Feature
 
-The **"Add Email"** button visibility is controlled by the `NEXT_PUBLIC_SMTP_ENABLED` environment variable. When set to `"true"` (default), features that require an SMTP mail server are enabled, including email notifications for logs.
+The **"Add Email"** button visibility is controlled by the `NEXT_PUBLIC_SMTP_ENABLED` environment variable. When set to `"true"`, features that require an SMTP mail server are enabled, including email notifications for logs.
 
 | Setting |
 |---|
@@ -92,8 +97,12 @@ The **"Add Email"** button visibility is controlled by the `NEXT_PUBLIC_SMTP_ENA
 Once the button is visible:
 
 1. Click the **"Add Email"** button located next to the page title.
-2. Add the email addresses that should receive notifications.
-3. Notifications are sent when `ERROR` or `FATAL` logs are detected.
+   <img width="1631" height="246" alt="image" src="https://github.com/user-attachments/assets/9736eabb-1471-400f-a8f9-38b817d6ee1b" />
+
+3. Add the email addresses that should receive notifications.
+4. Notifications are sent when `ERROR` or `FATAL` logs are detected.
+<img width="1651" height="581" alt="image" src="https://github.com/user-attachments/assets/ee393aa4-1209-445c-94fb-e8f9e7a8e544" />
+
 
 > ℹ️ To prevent excessive emails, the system only sends one notification per error type every 60 minutes.
 
