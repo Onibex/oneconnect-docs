@@ -15,7 +15,6 @@ The following environment variables must be added to the **oneconnect-logs** dep
 | Kubernetes Variable | Description | Default | Required |
 |---|---|---|---|
 | `LOGEMAILSENDER_ENABLE` | Enables email sending for log alerts | `false` | Yes, set to `true` |
-| `TARGET_URL_EMAIL` | URL of the email builder service | *(none)* | Yes |
 
 > ℹ️ The email cache prevents duplicate alerts: the same error type in the same workspace will only trigger one email every **60 minutes**.
 
@@ -29,8 +28,6 @@ Add these variables to your **oneconnect-logs** deployment:
 env:
   - name: LOGEMAILSENDER_ENABLE
     value: "true"
-  - name: TARGET_URL_EMAIL
-    value: "http://emailbuilder.oneconnect.svc.cluster.local:9003/api/v1/email"
 ```
 
 ---
