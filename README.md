@@ -31,7 +31,7 @@ troubleshooting guides in a single place, organized by product.
 
 ## Contents
 
-The repository is organized into three main folders:
+The repository is organized into four main folders:
 
 ### [SAP Data Modeler](./SAP_Data_Modeler)
 
@@ -66,10 +66,21 @@ a whole, independent of a specific component. This folder includes:
 - The 15-hour business value challenge
 - Frequently asked questions (FAQ)
 
+### [Business Solutions](./Business_Solutions)
+
+Ready-to-run solution stacks and reference architectures that turn the data
+delivered by OneConnect into business value on the consumption side
+(visualization, analytics, alerting). This folder includes:
+
+- Deployment artifacts (configuration as code, container definitions)
+- Step-by-step integration manuals
+- Cost and licensing analyses
+
 ## How to use this repository
 
 1. Navigate to the folder of the product you're interested in
-   (**Data Modeler**, **Smart Gateway**, or **Technical Information**).
+   (**Data Modeler**, **Smart Gateway**, **Technical Information**, or
+   **Business Solutions**).
 2. Start with the `README.md` inside the folder, which serves as the index.
 3. Open the specific manual you need to consult.
 
