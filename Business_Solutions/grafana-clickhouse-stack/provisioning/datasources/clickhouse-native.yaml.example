@@ -1,0 +1,35 @@
+# ClickHouse data source — NATIVE version (native TCP protocol, port 9000 · 9440 with TLS).
+#
+# INACTIVE file (.example extension → Grafana does not load it).
+# To use Native INSTEAD OF HTTP:
+#   1) delete or rename the current "clickhouse.yaml" (HTTP version),
+#   2) rename this file to "clickhouse.yaml".
+# It uses the same name/uid as the HTTP version, so dashboards do not change.
+#
+# Field names match the PINNED plugin version 3.3.0:
+#   - server  (in plugin 4.x this field was renamed to "host")
+#   - timeout (in plugin 4.x it is "dialTimeout")
+#
+# The password is read from the CLICKHOUSE_PASSWORD environment variable (defined in .env).
+# Docs: manual Section A5.
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse
+    uid: clickhouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      server: clickhouse.tu-host            # ClickHouse host or IP (field name in plugin 3.3.0)
+      port: 9000                     # Native: 9000 · Native+TLS: 9440
+      protocol: native               # native | http
+      secure: false                  # true if ClickHouse exposes TLS (port 9440)
+      tlsSkipVerify: false           # true only with self-signed certificates
+      username: grafana_ro           # read-only user
+      defaultDatabase: analitica  # default database
+      timeout: "10"                  # dial timeout in seconds (string)
+      queryTimeout: "60"             # query timeout in seconds
+    secureJsonData:
+      password: ${CLICKHOUSE_PASSWORD}   # resolved from the environment variable

@@ -1,0 +1,10 @@
+# Secretos locales — nunca versionar
+.env
+
+# Certificados TLS reales (deja los placeholders de ./certs solo como referencia)
+certs/*.crt
+certs/*.key
+!certs/*.example
+
+# Datos locales de Grafana si se montan como bind-mount
+data/

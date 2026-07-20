@@ -1,0 +1,70 @@
+# Grafana OSS + nginx (TLS reverse proxy) to visualize ClickHouse.
+# Secrets and domain are read from a .env file (see .env.example).
+# Start:  docker compose up -d
+services:
+  grafana:
+    image: grafana/grafana-oss:latest   # OSS (free). Recommended: pin a version, e.g. grafana/grafana-oss:11.6.0
+    container_name: grafana
+    restart: unless-stopped
+    # Direct port for LOCAL DEVELOPMENT ONLY. In production, access goes through nginx (443).
+    # Bound to 127.0.0.1 so Grafana is never exposed without TLS.
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      # --- Public domain / URL (required behind nginx) ---
+      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN}
+      - GF_SERVER_ROOT_URL=https://${GRAFANA_DOMAIN}/
+      - GF_SERVER_ENFORCE_DOMAIN=true
+      # --- Security / users ---
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_DEFAULT_THEME=light
+      # --- ClickHouse data source plugin (pinned version) ---
+      # Version is pinned on purpose: newer plugins send the `client_protocol_version`
+      # setting, which OLD ClickHouse servers (e.g. 22.1) reject with
+      # "Code: 115 UNKNOWN_SETTING". 3.3.0 predates that behavior. If Grafana rejects
+      # this plugin build, you may also need to pin an older grafana-oss image above.
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource 3.3.0
+      # --- Provisioning as code (datasources / dashboards / alerting) ---
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      # ClickHouse user password consumed by provisioning/datasources/clickhouse.yaml
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      # --- SMTP for email notifications (optional; uses the templates in ./templates) ---
+      #   Uncomment and set the values in .env if you plan to send email alerts.
+      #- GF_SMTP_ENABLED=true
+      #- GF_SMTP_HOST=${GF_SMTP_HOST}
+      #- GF_SMTP_USER=${GF_SMTP_USER}
+      #- GF_SMTP_PASSWORD=${GF_SMTP_PASSWORD}
+      #- GF_SMTP_FROM_ADDRESS=${GF_SMTP_FROM_ADDRESS}
+      #- GF_SMTP_FROM_NAME=${GF_SMTP_FROM_NAME}
+    volumes:
+      # Alert email templates (branding). The .html overrides Grafana's default.
+      - ./templates/ng_alert_notification.html:/usr/share/grafana/public/emails/ng_alert_notification.html:ro
+      - ./templates/ng_alert_notification.txt:/usr/share/grafana/public/emails/ng_alert_notification.txt:ro
+      - ./provisioning:/etc/grafana/provisioning
+      - storage:/var/lib/grafana
+    networks:
+      - monitoring_network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/ssl:ro
+    networks:
+      - monitoring_network
+    depends_on:
+      - grafana
+
+volumes:
+  storage: {}
+
+networks:
+  monitoring_network:
+    driver: bridge

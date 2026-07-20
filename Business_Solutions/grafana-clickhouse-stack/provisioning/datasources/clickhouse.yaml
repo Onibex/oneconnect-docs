@@ -1,0 +1,38 @@
+# ClickHouse data source — HTTP version (HTTP protocol, port 8123 · 8443 with TLS).
+# This is the ACTIVE version by default.
+#
+# Field names match the PINNED plugin version 3.3.0:
+#   - server  (in plugin 4.x this field was renamed to "host")
+#   - timeout (in plugin 4.x it is "dialTimeout")
+# If you bump the plugin to 4.x, rename "server" -> "host" and "timeout" -> "dialTimeout".
+#
+# Prefer the Native protocol (TCP, port 9000/9440)? A second ready-to-use version lives in
+# "clickhouse-native.yaml.example": rename it to "clickhouse.yaml" (replacing this file) to
+# use Native. Only ONE .yaml file must be active in this folder; both versions share the same
+# name/uid, so dashboards keep working without changes.
+#
+# The password is NOT stored here: it is read from the CLICKHOUSE_PASSWORD environment
+# variable (defined in .env). Docs: manual Section A5.
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse
+    uid: clickhouse
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    # editable:false = managed as code (cannot be edited from the UI).
+    # Set to "true" if you prefer to tweak it in the UI during setup.
+    editable: false
+    jsonData:
+      server: clickhouse.tu-host            # ClickHouse host or IP (field name in plugin 3.3.0)
+      port: 8123                     # HTTP: 8123 · HTTPS: 8443
+      protocol: http                 # native | http
+      secure: false                  # true if ClickHouse exposes TLS (port 8443)
+      tlsSkipVerify: false           # true only with self-signed certificates
+      username: grafana_ro           # read-only user
+      defaultDatabase: analitica  # default database
+      timeout: "10"                  # dial timeout in seconds (string)
+      queryTimeout: "60"             # query timeout in seconds
+    secureJsonData:
+      password: ${CLICKHOUSE_PASSWORD}   # resolved from the environment variable
