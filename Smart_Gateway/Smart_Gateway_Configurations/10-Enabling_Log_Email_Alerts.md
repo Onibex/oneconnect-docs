@@ -38,7 +38,7 @@ The **"Add Email"** button in the Logs dashboard is also hidden by default. To m
 
 ```yaml
 env:
-  - name: NEXT_PUBLIC_ENABLE_ADD_EMAIL_LOGS_BUTTON
+  - name: NEXT_PUBLIC_SMTP_ENABLED
     value: "true"
 ```
 
