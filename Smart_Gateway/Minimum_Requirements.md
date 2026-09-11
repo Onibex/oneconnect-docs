@@ -4,6 +4,8 @@ This manual defines the **minimum infrastructure requirements** to deploy a Proo
  
 The POC is designed to validate OneConnect functionality with a compact, cost efficient Kubernetes cluster. For production deployments, refer to the corresponding cloud specific deployment guides.
  
+> ⚠️ **Disclaimer:** The specifications in this manual reflect a **small** instance size, sufficient for a Proof of Concept only. In production environments, instance size may vary depending on the volume of data to be processed.
+ 
 ---
  
 ## AWS (EKS)
