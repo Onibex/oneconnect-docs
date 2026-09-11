@@ -75,6 +75,10 @@ Reference documentation for the web application's environment variables (e.g. `N
 2. [Generating a SAP OTel Bridge Endpoint (Traceability)](./08-Generating_SAP_OTel_Bridge_Endpoint.md)
 3. [Enabling Log Email Alerts](./09-Enabling_Log_Email_Alerts.md)
 
+### If you need to diagnose a specific issue
+
+See [Troubleshooting](../../Troubleshooting/), starting with the [symptom triage table](../../Troubleshooting/README.md#-start-here-symptom-triage). The manuals above cover how to read the logs; the Troubleshooting guides cover how to interpret what they show and which settings to check next.
+
 ---
 
 ## 🔗 External Resources

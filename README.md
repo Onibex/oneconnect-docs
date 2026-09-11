@@ -96,6 +96,10 @@ Ready-to-run solution stacks and reference architectures that turn the data deli
 - Step-by-step integration manuals.
 - Cost and licensing analyses.
 
+###  [Troubleshooting](./Troubleshooting)
+
+Diagnostic guides organized by layer: deployment, authentication, Kafka connectivity, Avro serialization, and end-to-end data flow. Start with the [symptom triage table](./Troubleshooting/README.md#-start-here-symptom-triage) to find the relevant guide.
+
 ---
 
 ## How to Use This Repository
@@ -125,6 +129,10 @@ Refer to this folder anytime you have general questions about the platform, its 
 ### 5. [Business Solutions](./Business_Solutions)
 
 Once your data is flowing, explore ready-to-run solution stacks and reference architectures that turn OneConnect data into real business value on the consumption side (visualization, analytics, alerting).
+
+### 6. [Troubleshooting](./Troubleshooting)
+
+A reference section rather than a sequential step. The guides are organized by layer — deployment, authentication, connectivity, serialization, and end-to-end data flow — and open with a symptom triage table that points you to the relevant one.
 
 All documents are in Markdown (`.md`) format and render directly on GitHub. No downloads needed.
 
