@@ -19,6 +19,8 @@ Phase 1: Model  →  Phase 2: Activate  →  Phase 3: Connect
 ### Phase 1 — Model: [SAP Data Modeler](./SAP_Data_Modeler)
 
 **Decide what SAP data to extract.** Using a low-code / no-code tool that lives inside your SAP system, you design **SAP Data Products**, business-meaningful entities (like Customer, Sales Order, Delivery, or Invoice) built by joining SAP tables and CDS Views. No ABAP development required.
+<img width="1280" height="720" alt="data-modeler-add-table" src="https://github.com/user-attachments/assets/ba896b51-abaf-4d0f-8eed-90aa533b6e3f" />
+
 
 It also supports the extension of any of the **150+ pre-packaged Foundational Data Products** available in the **One Connect Data Market**, as well as the creation of fully custom entities tailored to your business needs.
 
@@ -33,6 +35,8 @@ It also supports the extension of any of the **150+ pre-packaged Foundational Da
 Once your entities are defined in the Data Modeler, the **Smart Gateway** takes over. It's a Kubernetes-based engine that receives data and metadata from SAP and translates them into standard streaming formats: **Apache Kafka topics** and **Avro schemas** managed by the **Confluent Schema Registry**.
 
 The Smart Gateway is the bridge between your SAP world and the modern data ecosystem. It handles high-volume, real-time data flows while remaining cloud-agnostic and horizontally scalable.
+<img width="1896" height="1028" alt="smartgateway-overview (1)" src="https://github.com/user-attachments/assets/906fd17b-a146-4ce7-8821-24fb9e8990be" />
+
 
 **Where the Smart Gateway can run:**
 
@@ -56,6 +60,8 @@ If you run into an issue while deploying or activating the Smart Gateway, check 
 ### Phase 3 — Connect: Kafka Connectors
 
 **Deliver your data to its final destination.** Once your SAP data is flowing through Kafka topics, **Kafka Connectors** consume those topics and write the data into destinations like Databricks, PostgreSQL, Snowflake, ClickHouse, and more.
+<img width="1586" height="1026" alt="connectors" src="https://github.com/user-attachments/assets/031c7cca-88ed-4f26-8b7a-a911a4af70e6" />
+
 
 Onibex offers **Premium Kafka Connectors** that are **Confluent Gold-Verified**, supporting automatic schema evolution, full CDC (INSERT/UPDATE/DELETE), idempotent writes, and OAuth-based security.
 
