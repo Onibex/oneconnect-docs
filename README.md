@@ -60,7 +60,8 @@ If you run into an issue while deploying or activating the Smart Gateway, check 
 ### Phase 3 — Connect: Kafka Connectors
 
 **Deliver your data to its final destination.** Once your SAP data is flowing through Kafka topics, **Kafka Connectors** consume those topics and write the data into destinations like Databricks, PostgreSQL, Snowflake, ClickHouse, and more.
-<img width="1586" height="1026" alt="connectors" src="https://github.com/user-attachments/assets/031c7cca-88ed-4f26-8b7a-a911a4af70e6" />
+<img width="1102" height="896" alt="image" src="https://github.com/user-attachments/assets/e935de3e-255c-48b0-8902-ccb77524efde" />
+
 
 
 Onibex offers **Premium Kafka Connectors** that are **Confluent Gold-Verified**, supporting automatic schema evolution, full CDC (INSERT/UPDATE/DELETE), idempotent writes, and OAuth-based security.
