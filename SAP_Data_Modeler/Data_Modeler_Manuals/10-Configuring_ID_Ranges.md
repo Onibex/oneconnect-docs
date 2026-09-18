@@ -14,9 +14,7 @@ This configuration establishes the internal number ranges required by Onibex's S
 
 ### 1. Open the SNRO Transaction
 
-In SAP, go to transaction **`SNRO`**.
-
-<img width="381" height="238" alt="image" src="https://github.com/user-attachments/assets/181e353f-1462-4d2f-87cd-c2d1fff66a37" />
+In SAP, go to transaction **`SNUM`**.
 
 ### 2. Configure the Object Names
 
