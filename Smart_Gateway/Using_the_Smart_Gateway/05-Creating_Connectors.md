@@ -38,7 +38,7 @@ The Add Connector wizard consists of **5 steps**:
 
 Choose the connector type that matches your target destination.
 
-<img width="892" height="586" alt="image" src="https://github.com/user-attachments/assets/c0342aab-f265-4cbe-b239-a7ff77ba97df" />
+<img width="1102" height="896" alt="Screenshot 2026-09-18 142622" src="https://github.com/user-attachments/assets/fddb799f-9cfb-454f-a24b-f584aac5aab8" />
 
 
 ### General Information
