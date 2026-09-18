@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Adding a Connector to Kafka Connect
+# Adding a Connector to Kafka Connect
 
 This manual describes how to add a **specific connector** (such as Snowflake, Databricks, Hana, SQL Server, PostgreSQL, DB2, BigQuery, Amazon S3, or Microsoft Fabric) to a Kafka Connect deployment on the Smart Gateway platform.
 

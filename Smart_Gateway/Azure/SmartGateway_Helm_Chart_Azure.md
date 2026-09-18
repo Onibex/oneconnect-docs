@@ -1,4 +1,4 @@
-# SmartGateway Helm Chart — Quick Deployment Guide (Azure)
+# Installation Guide — SmartGateway Helm Chart (Azure AKS, BYOC)
 
 This Helm Chart deploys SmartGateway on Kubernetes (microservices + MySQL + required configuration).
 

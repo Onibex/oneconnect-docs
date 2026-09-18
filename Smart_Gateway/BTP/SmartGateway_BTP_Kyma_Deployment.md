@@ -1,3 +1,5 @@
+# Installation Guide — SmartGateway Helm Chart (SAP BTP Kyma, Cloud Connector)
+
 ## Overview
 
 This manual guides you through the fully private deployment of OneConnect on **SAP BTP Kyma (AWS EKS)**. All access is routed through **SAP Cloud Connector**. No services are exposed to the public internet.

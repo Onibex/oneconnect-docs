@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Configuring the Email Service (SMTP)
+# Configuring the Email Service (SMTP)
 
 The platform uses a dedicated email service to send account-related emails (user activation, password resets) and log alert notifications. Before these features work, the email service must be configured with your SMTP server credentials.
 

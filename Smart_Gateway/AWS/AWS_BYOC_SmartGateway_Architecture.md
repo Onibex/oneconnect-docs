@@ -1,5 +1,4 @@
-# Smart Gateway BYOC. Bring Your Own Cloud
-## AWS Deployment Architecture
+# Smart Gateway BYOC. AWS Deployment Architecture
 
 ---
 

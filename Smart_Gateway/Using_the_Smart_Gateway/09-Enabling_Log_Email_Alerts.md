@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Enabling Email Alerts for Logs
+# Enabling Email Alerts for Logs
 
 The logs module can send email notifications when `ERROR` or `FATAL` logs are detected. By default, this feature is **disabled**. To enable it, configure the following settings.
 

@@ -27,7 +27,7 @@ Once the Smart Gateway is deployed and reachable, this is where you configure it
 
 ---
 
-# Introduction
+## Introduction
 
 The **Onibex One Connect Smart Gateway** is the integration engine of the One Connect suite, built on **Kubernetes** for cloud-native scalability and portability. It receives data and metadata from the SAP Data Modeler and translates them into **Kafka schemas and topics**, serializing the payloads in **Avro** format for downstream consumption.
 

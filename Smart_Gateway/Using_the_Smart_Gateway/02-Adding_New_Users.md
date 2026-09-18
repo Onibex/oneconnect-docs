@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Add a New User to the OneConnect Cloud Platform
+# Add a New User to the OneConnect Cloud Platform
 
 Only **administrator users** with the appropriate permissions can add new users to the OneConnect platform.
 

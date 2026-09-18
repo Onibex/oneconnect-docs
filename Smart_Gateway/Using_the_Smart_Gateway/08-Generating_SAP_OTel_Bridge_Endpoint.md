@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Generating a SAP OTel Bridge Endpoint (Traceability)
+# Generating a SAP OTel Bridge Endpoint (Traceability)
 
 The **SAP OTel Bridge** (also referred to as **Traceability**) is an endpoint that, once generated, is placed in your SAP system. When errors occur in your SAP processes, those errors — along with their traceability data and logger information — become visible in the **Logs** section of the OneConnect platform. This allows you to correlate SAP-side issues with Kafka-side logs in a single view.
 

@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Grant SAP Link Access to a User
+# Grant SAP Link Access to a User
 
 This manual describes how to grant access to an existing SAP Link to another user in the OneConnect platform. This is useful when multiple team members need to collaborate on the same SAP Link, such as when a developer creates the SAP Link and a data engineer or analyst needs read access to monitor its activity.
 

@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Creating SAP Connectors on the Smart Gateway Platform
+# Creating SAP Links on the Smart Gateway Platform
 
 > 📌 **Note:** Each account and user has the ability to create SAP Connectors in their designated environment. The following steps show how a SAP Connector is created from an **administrator account**. Non-administrator users can also create SAP Connectors in their environment following these same steps.
 

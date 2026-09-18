@@ -1,5 +1,4 @@
-# Smart Gateway BYOC. Bring Your Own Cloud
-## Azure Deployment Architecture
+# Smart Gateway BYOC. Azure Deployment Architecture
 
 ---
 

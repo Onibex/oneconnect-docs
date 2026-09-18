@@ -1,6 +1,4 @@
-# Smart Gateway Configuration Manual
-
-## Configuring Kafka Connect
+# Configuring Kafka Connect
 
 This manual describes how to configure a **Kafka Connect** deployment on the Smart Gateway platform. Kafka Connect is the component that runs the connectors responsible for delivering SAP data from Kafka topics to downstream destinations such as Databricks, Snowflake, or ClickHouse.
 

@@ -1,4 +1,4 @@
-# SmartGateway Helm Chart — Quick Deployment Guide (AWS)
+# Installation Guide — SmartGateway Helm Chart (AWS EKS, BYOC)
 
 This Helm Chart deploys SmartGateway on Kubernetes (microservices + MySQL + required configuration).
 
