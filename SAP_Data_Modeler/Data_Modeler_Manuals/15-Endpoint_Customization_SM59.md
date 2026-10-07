@@ -65,6 +65,21 @@ Fill in the following values on the **Technical Settings** tab:
 > - **Path Prefix:** `/api/v1/saplistener/{CLIENT}`
 <img width="1652" height="1064" alt="image" src="https://github.com/user-attachments/assets/ebeb2105-2324-4e58-abef-774e965e2461" />
 
+### Choosing the Endpoint: Synchronous vs. Asynchronous
+
+The Smart Gateway exposes two ingestion endpoints for each SAP Link. You select one through the **Path Prefix** by adding or omitting the `/synchronous` suffix.
+
+| Mode | Method | Path Prefix | Behavior |
+|---|---|---|---|
+| **Synchronous** *(default, recommended)* | `POST` | `/api/v1/saplistener/{CLIENT}/synchronous` | Returns the Kafka offset of the record. If no offset is produced, it returns `400`. |
+| **Asynchronous** | `POST` | `/api/v1/saplistener/{CLIENT}` | The Producer accepts the message and returns `201`. |
+
+> ✅ **Use the synchronous endpoint by default.** Configure the **Path Prefix** as `/api/v1/saplistener/{CLIENT}/synchronous`.
+>
+> Full URL: `https://{DOMAIN}:5051/api/v1/saplistener/{CLIENT}/synchronous`
+
+> ℹ️ The **Connection Test** uses `GET`, which does not authenticate on either endpoint. A `200` confirms the server is reachable, not that the credentials are valid.
+
 ---
 
 ## Step 6: Configure Logon & Security
