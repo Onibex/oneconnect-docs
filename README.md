@@ -40,16 +40,11 @@ The Smart Gateway is the bridge between your SAP world and the modern data ecosy
 
 **Where the Smart Gateway can run:**
 
-- **AWS** (EKS).
-- **Azure** (AKS).
-- **GCP** (GKE).
-- **SAP BTP Kyma**.
+- **[AWS](./Smart_Gateway/AWS)** (EKS) — [BYOC](./Smart_Gateway/AWS/AWS_BYOC_SmartGateway_Architecture.md) / [SaaS](./Smart_Gateway/AWS/AWS_SaaS_SmartGateway_Architecture.md) architecture.
+- **[Azure](./Smart_Gateway/Azure)** (AKS) — [BYOC](./Smart_Gateway/Azure/Azure_BYOC_SmartGateway_Architecture.md) / [SaaS](./Smart_Gateway/Azure/Azure_SaaS_SmartGateway_Architecture.md) architecture.
+- **GCP** (GKE) — supported through the same [multi-cloud Helm chart](./Smart_Gateway/AWS/SmartGateway_Helm_Chart_AWS.md) used for AWS/Azure.
+- **[SAP BTP Kyma](./Smart_Gateway/BTP)** — see the [Kyma deployment guide](./Smart_Gateway/BTP/SmartGateway_BTP_Kyma_Deployment.md).
 - **Docker (any OS with Docker installed)**.
-
-You can also choose between deployment models:
-
-- **SaaS** (Onibex-hosted).
-- **BYOC** (Bring Your Own Cloud, deployed in your own account).
 
 If you run into an issue while deploying or activating the Smart Gateway, check the [Troubleshooting guide](./Troubleshooting).
 
