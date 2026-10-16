@@ -78,6 +78,8 @@ The Smart Gateway exposes two ingestion endpoints for each SAP Link. You select 
 >
 > Full URL: `https://{DOMAIN}:5051/api/v1/saplistener/{CLIENT}/synchronous`
 
+> 📌 **The URL shown by the platform for the SAP Link already points to the synchronous endpoint** (it ends in `/synchronous`), so use it as-is: split it into **Host**, **Port**, and **Path Prefix** without adding or removing anything. When the platform publishes SAP Links through an ingress, the ingress exposes this synchronous path for each SAP Link; when it uses a load balancer, the URL has the form `http://{LOAD_BALANCER_ADDRESS}:8080/api/v1/saplistener/{CLIENT}/synchronous`.
+
 > ℹ️ The **Connection Test** uses `GET`, which does not authenticate on either endpoint. A `200` confirms the server is reachable, not that the credentials are valid.
 
 ---
@@ -100,9 +102,11 @@ Once all required fields are completed, click **"Connection Test"**.
 
 | Status Code | Meaning | Action |
 |---|---|---|
-| **200** | ✅ Successful connection. | No action needed. |
-| **400** | ⚠️ Server not detected. | Review host, port, and path prefix. |
-| **500** | ❌ Authentication failure. | Review username and password in Logon & Security. |
+| **200** | ✅ The endpoint is reachable. | No action needed. |
+| **404** | ⚠️ The server was reached, but the path does not match this SAP Link. | Review the **Path Prefix** and the workspace ID; copy them from the URL shown on the SAP Link screen. |
+| **Any other code** | ℹ️ The response comes from a network component between SAP and the Smart Gateway (SAP ICM, proxy, ingress, or load balancer). | Review host, port, SSL settings (`http` vs `https`), and the network path to the Smart Gateway. |
 <img width="512" height="288" alt="image" src="https://github.com/user-attachments/assets/49709354-ee7c-4506-9087-bb57994f6e52" />
+
+> ℹ️ The credentials in **Logon & Security** are validated when SAP sends data (`POST`). See the [HTTP status table](../../Troubleshooting/03-Authentication_and_Credentials.md#reading-the-http-status-code) for the codes returned at that point.
 
 > ✅ **You're done!** Your SAP system is now configured to communicate with the external endpoint via RFC.

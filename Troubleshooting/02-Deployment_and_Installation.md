@@ -2,7 +2,7 @@
 
 Failures that happen while installing or upgrading the Helm chart, or that prevent pods from reaching `Running`.
 
-Applies to the SmartGateway Helm chart on EKS, AKS, and GKE. For SAP BTP / Kyma, see the [BTP deployment troubleshooting](../Smart_Gateway/BTP/SmartGateway_BTP_Kyma_Deployment.md#troubleshooting) — Cloud Connector and Istio issues are covered there.
+Applies to the SmartGateway Helm chart on EKS, AKS, and GKE. For SAP BTP / Kyma, see the [BTP deployment troubleshooting](../Smart_Gateway/BTP/SmartGateway_BTP_Kyma_Deployment.md#troubleshooting) — Cloud Connector and Istio issues are covered there. For the installation steps themselves, see the [AWS](../Smart_Gateway/AWS/SmartGateway_Helm_Chart_AWS.md) and [Azure](../Smart_Gateway/Azure/SmartGateway_Helm_Chart_Azure.md) guides.
 
 ---
 
@@ -13,9 +13,10 @@ Before diagnosing anything, know the chart's normal timings:
 | Behavior | Normal value | Implication |
 |---|---|---|
 | Readiness probe initial delay | **300 seconds** on most services | A pod showing `0/1` for the first ~5 minutes is expected |
-| MySQL wait init container | Up to **300 seconds** (60 retries × 5 s) | Dependent services legitimately sit in `Init:0/1` for minutes |
+| MySQL wait init container (`wait-for-mysql`) | Up to **300 seconds** per attempt | `auth`, `builder`, `cwcback`, `logs`, and `metrics` legitimately sit in `Init:0/1` for minutes |
 | MySQL readiness probe | **200 seconds** initial delay | MySQL is the long pole on a cold install |
-| Recommended install timeout | `--timeout 15m` | Shorter timeouts produce false failures |
+| `frontend-apigateway-sync` post-install hook | Waits up to **600 s** for the API Gateway load balancer address, then up to **10 min** for the frontend rollout | Helm waits for this hook before reporting success |
+| Recommended install timeout | `--timeout 15m` | Gives the post-install hook the time it needs (see [§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition)) |
 
 ```bash
 # Watch rather than re-running helm
@@ -30,13 +31,7 @@ A pod is only a problem if it is `CrashLoopBackOff`, `ImagePullBackOff`, `Pendin
 
 ### Missing required values
 
-The chart requires the Docker Hub token to be supplied at install time — it ships empty.
-
-```
-Error: execution error at (oneconnect/templates/secrets.yaml): ...
-```
-
-Re-run with every required flag:
+Every install uses the same set of flags. The Docker Hub token is supplied at install time, and the install guides expose the UI publicly with `networking.loadBalancer.type=external`:
 
 ```bash
 helm install oneconnect . \
@@ -46,6 +41,10 @@ helm install oneconnect . \
   --set networking.loadBalancer.type=external \
   --timeout 15m
 ```
+
+> 📌 Always pass `dockerHub.token`; if it is missing, images fail to pull and pods show `ImagePullBackOff`. See [§2](#2-imagepullbackoff--errimagepull).
+
+> 💡 Use `values-aws.yaml`, `values-azure.yaml`, or `values-gcp.yaml` to match your cluster. The cloud file sets `cloudProvider`, the storage classes ([§4](#4-persistentvolumeclaim-problems)), and the load balancer annotations ([§7](#7-no-external-ip--cannot-reach-the-ui)).
 
 ### Render the templates without installing
 
@@ -72,9 +71,11 @@ helm rollback oneconnect -n oneconnect          # to the last good revision
 helm uninstall oneconnect -n oneconnect
 ```
 
+> 💡 A release marked `failed` because the post-install hook ran out of time usually has healthy pods. Check [§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition) before uninstalling.
+
 ### Deployment order was not respected
 
-The stack is installed in three phases. Installing OneConnect before Kafka is available produces pods that start without a cluster to connect to.
+The stack is installed in three phases, each building on the previous one:
 
 | Phase | Component | Gate before proceeding |
 |---|---|---|
@@ -84,16 +85,26 @@ The stack is installed in three phases. Installing OneConnect before Kafka is av
 
 ```bash
 kubectl get pods -n kafka | grep strimzi-cluster-operator
+kubectl get crd kafkas.kafka.strimzi.io
 kubectl get pods -n kafka
 ```
 
-> 📌 Wait for the operator to reach `1/1 Running` before starting phase 2. The Kafka custom resources are accepted by the API server but only reconciled once the operator is ready, so starting early surfaces later as "Kafka pods not starting".
+What you see when a phase is skipped:
+
+| Message | Meaning | Fix |
+|---|---|---|
+| `no matches for kind "Kafka" in version "kafka.strimzi.io/v1" -- ensure CRDs are installed first` (on `kafka-platform`) | The Strimzi CRDs are not in the cluster yet | Install the Strimzi operator (phase 1) first, then retry phase 2 |
+| `namespaces "kafka" not found` (on `oneconnect`) | The `oneconnect` chart also writes the pull secret and the Kafka Connect RBAC into the `kafka` namespace (`kafkaNamespace`), which is created in phase 1 | Complete phases 1 and 2, then retry |
+
+> 📌 Wait for the operator to reach `1/1 Running` before starting phase 2. The Kafka custom resources are reconciled once the operator is ready, so starting early surfaces later as "Kafka pods not starting".
 
 ---
 
 ## 2. `ImagePullBackOff` / `ErrImagePull`
 
-Usually related to the Docker Hub token.
+**Symptom** — Onibex pods (for example `auth`, `builder`, `mysql-0`, `datasynchub`, or the Producer/Consumer pods) show `ErrImagePull` or `ImagePullBackOff`, typically a few minutes after a successful `helm install` or `helm upgrade`.
+
+**Cause** — Usually the Docker Hub token: it was not supplied, has expired, or was not passed again on `helm upgrade`.
 
 ### Confirm it
 
@@ -105,16 +116,16 @@ Look for `Failed to pull image ... unauthorized` or `pull access denied`.
 
 ### How the secret works
 
-The chart builds a `kubernetes.io/dockerconfigjson` secret named **`docker-hub-credentials`** from three values:
+The chart builds a `kubernetes.io/dockerconfigjson` secret named **`docker-hub-credentials`** from these values:
 
 | Value | Default | Notes |
 |---|---|---|
 | `dockerHub.registry` | `https://index.docker.io/v1/` | Rarely changed |
-| `dockerHub.username` | `onibexenjoy` | The Onibex Docker Hub account |
-| `dockerHub.token` | *(empty)* | **You must supply this** |
+| `dockerHub.username` | Provided by Onibex together with your token | — |
+| `dockerHub.token` | *(empty)* | **You must supply this** on every install and upgrade |
 | `dockerHub.createSecret` | `true` | Set to `false` only if you manage the secret yourself |
 
-When `createSecret` is enabled the same secret is created in **three namespaces** — `oneconnect`, `datasynchub`, and `kafka` — because workloads in all three pull Onibex images.
+When `createSecret` is enabled the same secret is created in **three namespaces**: `oneconnect` (platform services, Producer, Consumer), `datasynchub` (DataSyncHub), and `kafka` (the Kafka Connect deployments the Builder creates for each workspace).
 
 ### Checks
 
@@ -129,11 +140,13 @@ kubectl get secret docker-hub-credentials -n oneconnect \
   -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d
 ```
 
+An empty `"password":""` in the decoded output means the token was not supplied.
+
 ### Fixes
 
 | Cause | Fix |
 |---|---|
-| Token not supplied | Re-run `helm upgrade` with `--set dockerHub.token=...` |
+| Token not supplied | Re-run `helm upgrade` with `--set dockerHub.token=...` (and the other flags from your install, see [§8](#8-upgrades)) |
 | Token expired or was revoked | Generate a new Docker Hub PAT, then `helm upgrade` with the new value |
 | Token pasted with quotes or whitespace | Re-set it cleanly; shell quoting frequently corrupts `dckr_pat_` strings |
 | `createSecret: false` but no secret provided | Either set it to `true`, or create `docker-hub-credentials` manually in all three namespaces |
@@ -143,7 +156,15 @@ After updating the token, the secret changes but running pods do not re-pull. Re
 
 ```bash
 kubectl rollout restart deployment -n oneconnect
+kubectl rollout restart statefulset mysql -n oneconnect
+kubectl rollout restart deployment -n datasynchub
 ```
+
+### `toomanyrequests: You have reached your pull rate limit`
+
+A few supporting components use public images: the database setup Job, `otel-collector`, the `frontend-apigateway-sync` hook, and, in the `kafka` namespace, Schema Registry and AKHQ. If many nodes share one public egress IP, Docker Hub's anonymous pull limit can apply to these.
+
+**Fix:** retry after the limit window, or point these images at a registry mirror your cluster can reach. For the hook, set `networking.loadBalancer.autoConfigureFrontend.kubectlImage` to a reachable `kubectl` image.
 
 ### When only the Producer/Consumer pods are affected
 
@@ -165,10 +186,12 @@ kubectl describe pod -n oneconnect <pod-name> | grep -A10 Events
 
 | Message | Cause | Fix |
 |---|---|---|
-| `Insufficient cpu` / `Insufficient memory` | Node pool too small | Scale the node group, or lower the `resources.requests` in values |
-| `pod has unbound immediate PersistentVolumeClaims` | No storage provisioner / wrong storage class | See [§4](#4-persistentvolumeclaim-problems) |
-| `had untolerated taint` | Nodes are tainted | Add matching entries under `scheduling.tolerations` in values |
-| `didn't match node affinity` | `scheduling.nodeAffinity` rules exclude all nodes | Correct or disable the affinity rules |
+| `Insufficient cpu` / `Insufficient memory` | Node pool too small | Scale the node group, or lower `services.<service>.resources.requests` / `mysql.resources` in values |
+| `pod has unbound immediate PersistentVolumeClaims` | Storage class missing or no provisioner | See [§4](#4-persistentvolumeclaim-problems) |
+| `had untolerated taint` | Nodes are tainted | Add matching entries under `scheduling.tolerations` in values (see the scope note below) |
+| `didn't match node affinity` | `scheduling.nodeAffinity` rules exclude all nodes | Correct the rules; they apply only with `scheduling.nodeAffinity.enabled: true` |
+
+As a sizing reference, the `oneconnect` chart requests roughly **4.2 GiB of memory and 1 vCPU** with the defaults, and the Kafka broker requests 2 GiB on its own. Each workspace created later adds its own Producer, Consumer, and Kafka Connect pods.
 
 Check capacity:
 
@@ -177,91 +200,105 @@ kubectl get nodes
 kubectl describe nodes | grep -A6 "Allocated resources"
 ```
 
+### Tolerations scope
+
+`scheduling.tolerations` applies to the platform Deployments (`apigateway`, `auth`, `builder`, `cwcback`, `datasynchub`, `emailbuilder`, `frontendoneconnect`, `logs`, `metrics`, `otel-collector`) and to the workspace pods the Builder creates.
+
+> 💡 Keep at least one node pool without taints for the database (`mysql-0`) and the setup jobs (`mysql-config`, `frontend-apigateway-sync`). If `mysql-0` is `Pending` with `had untolerated taint` while the other pods schedule, add an untainted node pool.
 
 ---
 
 ## 4. PersistentVolumeClaim Problems
 
-MySQL and DataSyncHub both require persistent storage. Storage issues surface as pods stuck in `Pending` or failing to mount.
+MySQL, DataSyncHub, and the Kafka broker all use persistent storage. Storage issues surface as pods stuck in `Pending` or failing to mount.
 
 ```bash
 kubectl get pvc -A
 kubectl describe pvc -n oneconnect data-mysql-0
+kubectl describe pvc -n datasynchub st-datasynchub
 kubectl get storageclass
 ```
 
+### PVCs `Pending`: the storage class does not exist in the cluster
+
+**Symptom** — `data-mysql-0` (namespace `oneconnect`), `st-datasynchub` (namespace `datasynchub`), and/or `data-0-kafka-cluster-main-pool-0` (namespace `kafka`) stay `Pending`. `kubectl describe pvc` shows `storageclass.storage.k8s.io "<name>" not found`, and the pods report `pod has unbound immediate PersistentVolumeClaims`.
+
+**Cause** — Each cloud values file names a storage class, and the chart uses that name as-is. The class must exist in your cluster.
+
+| Values file | `mysql.persistence.storageClass` | `datasynchub.persistence.storageClassName` | Kafka (`kafka-platform`) `nodePool.storage.class` |
+|---|---|---|---|
+| `values-aws.yaml` | `gp3` | `gp3` | `gp3` |
+| `values-azure.yaml` | `managed-premium` | `managed-premium` | `managed-premium` |
+| `values-gcp.yaml` | `pd-ssd` | `pd-ssd` | `pd-ssd` |
+
+**Confirm** — compare the names above with the classes available in your cluster:
+
+```bash
+kubectl get storageclass
+```
+
+> 📌 Common cases: a new EKS cluster may offer only `gp2` until a `gp3` class is created, and a GKE cluster offers `standard`, `standard-rwo`, and `premium-rwo` by default.
+
+**Fix** — either create a storage class with the expected name, or override the names at install time with classes that exist:
+
+```bash
+helm install oneconnect . \
+  --namespace oneconnect --create-namespace \
+  --values values-aws.yaml \
+  --set dockerHub.token=dckr_pat_xxxxxxxxxxxx \
+  --set networking.loadBalancer.type=external \
+  --set mysql.persistence.storageClass=gp2 \
+  --set datasynchub.persistence.storageClassName=gp2 \
+  --timeout 15m
+
+# Kafka broker storage (phase 2)
+helm install kafka-platform ./kafka-platform \
+  --values kafka-platform/values.yaml \
+  --values kafka-platform/values-aws.yaml \
+  --set nodePool.storage.class=gp2 \
+  --set loadBalancer.type=external
+```
+
+> ⚠️ Set `datasynchub.persistence.storageClassName` to a real class name rather than an empty string. Storage class settings on an existing PVC cannot be changed by `helm upgrade`; if a PVC was already created with an unavailable class, delete the `Pending` PVC (it holds no data yet) and run the upgrade with the corrected value.
+
+### Other storage symptoms
+
 | Symptom | Cause | Fix |
 |---|---|---|
-| PVC stuck `Pending`, no events | No default StorageClass | Set `mysql.persistence.storageClass` / `datasynchub.persistence.storageClassName` to a class that exists |
-| `provisioning failed` | CSI driver not installed | Install the cloud CSI driver: EBS (EKS), Azure Disk (AKS), PD (GKE) |
+| PVC stuck `Pending`, no events, `mysql.persistence.storageClass` empty | No default StorageClass in the cluster | Set `mysql.persistence.storageClass` to a class that exists, or mark one as default |
+| `provisioning failed` / `waiting for a volume to be created, either by external provisioner` | CSI driver not installed | Install the cloud CSI driver: EBS (EKS), Azure Disk (AKS), PD (GKE) |
 | PVC `Bound` but pod fails to mount | Zone mismatch between volume and node | Use a topology-aware (`WaitForFirstConsumer`) StorageClass |
-| PVC `Pending` with `exceeded quota` | Namespace storage quota reached | Raise the quota, or lower `persistence.size` |
+| PVC `Pending` with `exceeded quota` | Namespace storage quota reached | Raise the quota, or lower `mysql.persistence.size` / `datasynchub.persistence.size` |
 
 ---
 
 ## 5. A SAP Link Was Created, But No Producer Pod Appears
 
-The Producer and Consumer are not part of the Helm install. The Builder creates them through the Kubernetes API when you create a SAP Link, so check the Builder first.
+The Producer and Consumer are not part of the Helm install. The Builder creates them through the Kubernetes API when you create a SAP Link, so the Helm-side check is that the Builder has the permissions it needs.
 
-### Check the Builder first
-
-```bash
-kubectl logs -n oneconnect -l app=builder --tail=200 | grep -Ei 'error|forbidden|denied|unauthor'
-```
-
-### Cause A — RBAC is missing or disabled
-
-The Builder needs a Role allowing it to manage `deployments`, `services`, `secrets`, and `ingresses` in the `oneconnect` namespace, bound to its ServiceAccount.
+**Confirm** — check the Builder logs and its permissions:
 
 ```bash
-kubectl get serviceaccount builder-service-account -n oneconnect
-kubectl get role builder-role -n oneconnect
-kubectl get rolebinding -n oneconnect
+kubectl logs -n oneconnect -l app=builder --tail=200 | grep -E 'ERROR sending request|forbidden'
 
-# Definitive test — does the Builder actually have the permission?
 kubectl auth can-i create deployments \
   --as=system:serviceaccount:oneconnect:builder-service-account \
   -n oneconnect
 ```
 
-A `no` answer, or a `Forbidden` line in the Builder logs, confirms it.
+A `no` answer, or `forbidden` in the Builder logs, means the Builder's RBAC is not in place.
 
-**Fix:** ensure `rbac.create: true` and `services.builder.serviceAccount.create: true` in your values, then `helm upgrade`.
+**Fix** — keep `rbac.create: true` and `services.builder.serviceAccount.create: true` (the chart defaults) in your values, then run `helm upgrade` with your usual flags ([§8](#8-upgrades)). This creates the `builder-service-account` ServiceAccount, the `builder-role` Role, and its RoleBinding.
 
-### Cause B — the workspace limit was reached
-
-`KUBERNETES_MAX_WORKSPACES` caps how many SAP Links can exist. Check the effective value:
-
-```bash
-kubectl exec -n oneconnect -l app=builder -- env | grep -E 'KUBERNETES_MAX_WORKSPACES|KUBERNETES_WORKSPACE_REPLICAS'
-```
-
-Raise it via `services.builder.env.KUBERNETES_MAX_WORKSPACES` and `helm upgrade`.
-
-### Cause C — the image tag does not exist
-
-The Builder creates the workloads using fixed image tags:
-
-```bash
-kubectl exec -n oneconnect -l app=builder -- env | grep DOCKER_IMAGE_VERSION
-```
-
-If a tag was overridden to a version that is not published, the Deployment is created but its pods fail to pull. Confirm with `kubectl get pods -n oneconnect | grep -i producer` — an `ImagePullBackOff` here points at the tag, not the token (see [§2](#2-imagepullbackoff--errimagepull)).
-
-### Cause D — the Builder cannot reach its database
-
-```bash
-kubectl get pods -n oneconnect -l app=builder
-kubectl logs -n oneconnect -l app=builder -c wait-for-mysql
-```
-
-If the init container is still looping, this is a MySQL problem — see [§6](#6-mysql-will-not-start-or-services-cannot-reach-it).
+> 💡 For the full diagnosis (Builder log messages, workspace limits, image tags, and the other reasons a SAP Link may have no pods), see [06 §8 — The SAP Link Appears in the UI, but Its Pods Are Not Running](./06-No_Data_Reaching_Destination.md#8-the-sap-link-appears-in-the-ui-but-its-pods-are-not-running).
 
 ---
 
 ## 6. MySQL Will Not Start, or Services Cannot Reach It
 
-Every platform service waits on MySQL through an init container before starting. If MySQL is unhealthy, the whole namespace stalls in `Init:0/1`.
+Five services wait for MySQL through a `wait-for-mysql` init container before starting: **`auth`, `builder`, `cwcback`, `logs`, and `metrics`**. The other workloads (`apigateway`, `emailbuilder`, `frontendoneconnect`, `datasynchub`, `otel-collector`) start independently of MySQL.
+
+The databases are created the first time MySQL starts on an empty volume. The database setup Job, **`<release>-mysql-config`** (for example `oneconnect-mysql-config`), then grants the application user (`mysql.user`, stored in `mysql-secret`) access to the service databases.
 
 ```bash
 kubectl get pods -n oneconnect -l app=mysql
@@ -270,14 +307,55 @@ kubectl get jobs -n oneconnect
 kubectl logs  -n oneconnect -l app=mysql-config
 ```
 
-The init container prints its own guidance after 300 seconds; these are the same four checks.
+### `auth` works, but `builder` / `cwcback` / `logs` / `metrics` report `Access denied`
+
+**Symptom** — `auth` is `Running`, while `builder`, `cwcback`, `logs`, or `metrics` pass their init container and then go into `CrashLoopBackOff`. Their logs show `Access denied for user '<mysql.user>'@'%' to database '<database>'`.
+
+**Cause** — the database setup Job did not complete, for example because MySQL was still starting or its PVC was `Pending`.
+
+**Confirm:**
+
+```bash
+kubectl get jobs -n oneconnect
+# A completed Job shows COMPLETIONS 1/1
+
+kubectl logs -n oneconnect -l app=mysql-config
+# Success ends with:
+#   ✓ Granted privileges on: <databases>
+#   === Configuration Complete ===
+# A timeout shows:
+#   ERROR: MySQL did not become ready in time
+```
+
+**Fix** — re-run the database setup:
+
+#### Re-run the database setup
+
+1. Make sure `mysql-0` is `1/1 Running`.
+2. Delete the setup Job:
+   ```bash
+   kubectl delete job oneconnect-mysql-config -n oneconnect
+   ```
+3. Run `helm upgrade` with the same values file and flags you used at install ([§8](#8-upgrades)).
+4. Wait for `kubectl get jobs -n oneconnect` to show `1/1`, then restart the affected services:
+   ```bash
+   kubectl rollout restart deployment builder cwcback logs metrics -n oneconnect
+   ```
+
+### Other MySQL symptoms
+
+While MySQL is not ready, the `wait-for-mysql` init container prints `ERROR: MySQL user not ready after 300 seconds` together with the checks shown above, and continues once MySQL is ready.
 
 | Symptom | Cause | Fix |
 |---|---|---|
 | MySQL pod `Pending` | PVC unbound | See [§4](#4-persistentvolumeclaim-problems) |
-| MySQL `Running`, init container still looping | Config job did not run or failed | Check `mysql-config` job logs; the databases/grants may not have been created |
-| `Access denied for user` | `mysql-secret` does not match the credentials in the database | Confirm the values in `mysql-secret`, or set the password in the database to match |
-| MySQL restarts repeatedly | Memory limit too low | Raise `mysql.resources.limits.memory` |
+| `auth`/`builder`/`cwcback`/`logs`/`metrics` in `Init:0/1` → `Init:Error` while MySQL is not yet ready | MySQL still starting | Wait; the init containers retry and continue once MySQL is `1/1` |
+| Init containers keep failing and the `mysql-config` log shows `ERROR: MySQL did not become ready in time` while `mysql-0` is `Running`, after a reinstall | The `data-mysql-0` volume from a previous install was kept and holds the passwords from that install | Install with the same `mysql.rootPassword` / `mysql.password` as the original install, or (if the data is not needed) delete PVC `data-mysql-0` before reinstalling |
+| `Access denied for user` in the `auth` logs | `mysql-secret` does not match the credentials stored in the database | Confirm the values in `mysql-secret`, or set the password in the database to match |
+| MySQL restarts repeatedly (`OOMKilled`) | Memory limit too low | Raise `mysql.resources.limits.memory` |
+| MySQL restarts with `Liveness probe failed` during its first start | First-time initialization on a slow disk | Raise `mysql.livenessProbe.initialDelaySeconds` |
+
+> 📌 Keep `mysql.port` at `3306`; the in-cluster clients connect on that port.
 
 ---
 
@@ -287,57 +365,106 @@ The init container prints its own guidance after 300 seconds; these are the same
 kubectl get svc -n oneconnect
 ```
 
-Look for the frontend service and its `EXTERNAL-IP`. The UI listens on port **5050**:
+The chart creates two load balancers: `internal-frontend` (the UI, port **5050**) and `internal-apigateway` (port **9000**). Open the UI at:
 
 ```
-http://<EXTERNAL-IP>:5050
+http://<EXTERNAL-IP of internal-frontend>:5050
 ```
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `EXTERNAL-IP` stays `<pending>` | No cloud LoadBalancer controller | Install the cloud provider's load balancer controller |
-| IP assigned but unreachable from the internet | LoadBalancer provisioned as internal | Re-install/upgrade with `--set networking.loadBalancer.type=external` |
-| Reachable from the VPC only — intended | `type: internal` is the chart default | This is correct behavior; connect from inside the network or via VPN |
-| IP reachable, page does not load | Wrong port | Use `:5050`, not `:80` |
+| `EXTERNAL-IP` stays `<pending>` | No cloud LoadBalancer controller, quota reached, or (EKS) subnets not tagged for load balancers | Install the cloud provider's load balancer controller; check `kubectl get events -n oneconnect` for `SyncLoadBalancerFailed` |
+| IP assigned but unreachable from the internet | LoadBalancer provisioned as internal | Install/upgrade with `--set networking.loadBalancer.type=external`, as the install guides do |
+| Reachable from the VPC only — intended | `networking.loadBalancer.type: internal` (the values default) | Connect from inside the network or via VPN, or use `external` |
+| IP reachable, page does not load | The UI listens on port `5050` | Use `:5050`, not `:80` |
+| UI loads, but login or API calls do not reach the API Gateway | The `frontend-apigateway-sync` hook has not yet set the frontend's API address | See [§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition) |
 
 ```bash
-kubectl describe svc -n oneconnect <frontend-service> | grep -A10 Annotations
+kubectl describe svc -n oneconnect internal-frontend | grep -A10 Annotations
 kubectl get events -n oneconnect --sort-by=.lastTimestamp | tail -20
 ```
 
-The `internal` setting adds a cloud-specific annotation (`aws-load-balancer-internal`, `azure-load-balancer-internal`, or `networking.gke.io/load-balancer-type`). Switching to `external` removes it. Verify `cloudProvider` in your values matches the cluster you are on, so the annotation for your cloud is applied.
+The `internal` setting adds a cloud-specific annotation (`aws-load-balancer-internal`, `azure-load-balancer-internal`, or `networking.gke.io/load-balancer-type`). Switching to `external` removes it. The annotation is chosen from `cloudProvider`, which is set by the cloud values file — always include `--values values-<cloud>.yaml` so the annotation for your cloud is applied.
+
+> 💡 Control internal vs. external through `networking.loadBalancer.type` only. The chart manages the internal-load-balancer annotations itself, so adding them under `networking.loadBalancer.annotations` has no effect.
 
 ---
 
 ## 8. Upgrades
 
+**Pass the same values file and flags on every upgrade.** We recommend keeping your install values in your own values file, so every upgrade uses exactly the same settings.
+
 ```bash
 helm upgrade oneconnect . \
   --namespace oneconnect \
   --values values-aws.yaml \
-  --set dockerHub.token=dckr_pat_xxxxxxxxxxxx
+  --set dockerHub.token=dckr_pat_xxxxxxxxxxxx \
+  --set networking.loadBalancer.type=external \
+  --timeout 15m
 ```
 
 | Point to check | Detail |
 |---|---|
-| Include `--set dockerHub.token` | The secret is rebuilt on each upgrade, so pass the token every time |
-| Include `--values values-<cloud>.yaml` | Keeps the cloud-specific settings applied |
+| Include `--set dockerHub.token` | The secret is rebuilt on each upgrade, so pass the token every time; otherwise new pods go into `ImagePullBackOff` ([§2](#2-imagepullbackoff--errimagepull)) |
+| Include `--set networking.loadBalancer.type=external` | The install guides use this flag. Keep `networking.loadBalancer.type` on every upgrade so the UI and API Gateway load balancers stay public |
+| Include `--values values-<cloud>.yaml` | Keeps the cloud-specific settings (`cloudProvider`, storage classes, annotations) applied |
+| Include any other `--set` you used | For example storage class overrides ([§4](#4-persistentvolumeclaim-problems)) or `scheduling.tolerations` |
+| Include `--timeout 15m` | The post-install/post-upgrade hook runs again on every upgrade ([§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition)) |
 | New image tag not taking effect | `imagePullPolicy: IfNotPresent` — force with `kubectl rollout restart deployment -n oneconnect` |
 | Existing Producer/Consumer not upgraded | They are created from the Builder's `DOCKER_IMAGE_VERSION_*` values at SAP Link creation time; existing ones keep their original tag until recreated |
 
-Always confirm what changed:
+> 💡 Keep your overrides in your own values file (for example `my-values.yaml`) and pass it after the cloud file on both install and upgrade: `--values values-aws.yaml --values my-values.yaml`.
+
+To review the release revisions:
 
 ```bash
 helm history oneconnect -n oneconnect
-helm get values oneconnect -n oneconnect
 ```
+
+| Message during upgrade | Meaning | Fix |
+|---|---|---|
+| `Job.batch "oneconnect-mysql-config" is invalid: spec.template: ... field is immutable` | The database setup Job from the previous revision is still present | [Re-run the database setup](#re-run-the-database-setup) |
+| `StatefulSet.apps "mysql" is invalid: spec: Forbidden: updates to statefulset spec for fields other than ...` or `PersistentVolumeClaim "st-datasynchub" is invalid: spec: Forbidden: spec is immutable after creation` | `mysql.persistence.*` or `datasynchub.persistence.storageClassName` differs from the installed value | Use the same storage values as the original install |
+
+---
+
+## 9. Helm Reports `failed post-install: timed out waiting for the condition`
+
+**Symptom** — `helm install` (or `helm upgrade`) ends with `Error: INSTALLATION FAILED: failed post-install: timed out waiting for the condition` (or `failed post-upgrade`), and `helm list` shows the release as `failed`. The pods themselves are often healthy.
+
+**Cause** — After installing, the chart runs the `<release>-frontend-apigateway-sync` hook Job, which waits for the `internal-apigateway` load balancer address and then configures the frontend's `NEXT_PUBLIC_API_BASE`. Install and upgrade with `--timeout 15m`, as the install guides do.
+
+**Confirm:**
+
+```bash
+kubectl get pods -n oneconnect
+kubectl get jobs -n oneconnect | grep frontend-apigateway-sync
+kubectl logs -n oneconnect -l app=frontend-apigateway-sync
+kubectl get svc internal-apigateway -n oneconnect
+```
+
+| Hook log | Meaning |
+|---|---|
+| `ApiGateway endpoint is not ready yet. Retrying in 10s...` | Still waiting for the load balancer address — normal for the first minutes |
+| `Frontend configured successfully with NEXT_PUBLIC_API_BASE=http://...:9000` | The hook finished; the UI is ready to use |
+| `ERROR: ApiGateway LoadBalancer endpoint was not assigned after 600s.` | The cloud has not assigned an address to `internal-apigateway`; see [§7](#7-no-external-ip--cannot-reach-the-ui) |
+
+**Fix:**
+
+1. If the pods are healthy and only the timeout was too short, run `helm upgrade` with your install flags and `--timeout 15m` ([§8](#8-upgrades)). The hook runs again and marks the release `deployed`.
+2. If the hook reported `ERROR: ApiGateway LoadBalancer endpoint was not assigned`, resolve the load balancer first ([§7](#7-no-external-ip--cannot-reach-the-ui)), then run the upgrade.
+3. If the hook pod itself is in `ErrImagePull`, set `networking.loadBalancer.autoConfigureFrontend.kubectlImage` to a `kubectl` image your cluster can pull, then upgrade.
+
+> 💡 To check the address the frontend is using: `kubectl get deploy frontendoneconnect -n oneconnect -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="NEXT_PUBLIC_API_BASE")].value}'`. After a successful hook it is `http://<internal-apigateway address>:9000`.
 
 ---
 
 ## Summary
 
-1. Give the stack **15 minutes** — 300-second readiness delays are normal, not failures.
+1. Give the stack **15 minutes** and always install/upgrade with `--timeout 15m` — 300-second readiness delays and the post-install hook are normal.
 2. Install in order: **Strimzi → kafka-platform → oneconnect**, gating on pod readiness at each phase.
-3. `ImagePullBackOff` is nearly always the **Docker Hub token**; remember it is needed on every `helm upgrade` too, and that Producer/Consumer pods expose an expired token long after install.
-4. Missing Producer/Consumer pods after creating a SAP Link means the **Builder** was blocked — check RBAC, the workspace limit, and image tags.
-5. Storage issues show up as `Pending` pods — check the StorageClass and the cloud CSI driver.
+3. `ImagePullBackOff` is nearly always the **Docker Hub token** — always pass `dockerHub.token`, on install and on every `helm upgrade`.
+4. **Pass the same values file and flags on every upgrade**, especially `--set networking.loadBalancer.type=external` and the token — we recommend keeping them in your own values file.
+5. `Pending` PVCs usually mean the **storage class** in the cloud values file does not exist in your cluster — compare with `kubectl get storageclass` and override if needed.
+6. If `auth` works but `builder`/`cwcback`/`logs`/`metrics` report `Access denied`, [re-run the database setup](#re-run-the-database-setup).
+7. Missing Producer/Consumer pods after creating a SAP Link start with the **Builder's RBAC** — see [06 §8 — The SAP Link Appears in the UI, but Its Pods Are Not Running](./06-No_Data_Reaching_Destination.md#8-the-sap-link-appears-in-the-ui-but-its-pods-are-not-running) for the full diagnosis.
