@@ -236,9 +236,9 @@ Confirm from the sender's log (`ERROR sending logs`).
 
 **Fix**
 
-1. Choose one token value.
-2. Set it as `AUTH_SOFTAUTHTOKEN` on the API Gateway and as `ONECONNECT_SOFTSECURITYTOKEN` on the Producer and Consumer.
-3. Set it as `ONECONNECT_SOFTTOKEN` on the Builder, which passes it to the Producer and Consumer of SAP Links it deploys.
+1. Choose one token value and set it as `appSecrets.softToken` in `secrets.local.yaml` (or as the `soft-token` key of the Secret named in `appSecrets.existingSecret`).
+2. Run `helm upgrade` with your usual values files. The chart passes that single value to the API Gateway (`AUTH_SOFTAUTHTOKEN`) and to the Builder (`ONECONNECT_SOFTTOKEN`), so both always match.
+3. The Builder gives the token to the Producer and Consumer of the SAP Links it deploys. Producers and Consumers created **before** the change keep the old value: set `ONECONNECT_SOFTSECURITYTOKEN` on them to the new value, or recreate the SAP Link.
 4. Restart the workloads you changed ([§8](#8-credential-change-checklist)).
 
 Full Logs panel checklist in [01 — Diagnostic Toolkit](./01-Diagnostic_Toolkit.md#3-the-logs-panel-is-empty).
@@ -276,11 +276,11 @@ kubectl get svc internal-apigateway -n oneconnect
 
 | Cause | Confirm | Fix |
 |---|---|---|
-| `JWT_SECRET` is not valid Base64, or decodes to fewer than 32 bytes | Auth log shows `WeakKeyException` or `DecodingException` on sign-in | Set `JWT_SECRET` to a Base64 string of at least 32 bytes and restart Auth |
-| Auth cannot reach its database | Auth log shows JDBC connection errors | Confirm MySQL is running and that `mysql-secret` matches the database ([02 — Installation & Deployment](./02-Deployment_and_Installation.md)) |
+| `JWT_SECRET` is not valid Base64, or decodes to fewer than 32 bytes | Auth log shows `WeakKeyException` or `DecodingException` on sign-in | Set `appSecrets.jwtSecret` to a valid value (the output of `openssl rand -hex 32` works), run `helm upgrade` and restart Auth |
+| Auth cannot reach its database | Auth log shows JDBC connection errors | Confirm MariaDB is running and that `mysql-secret` matches the database ([02 — Installation & Deployment](./02-Deployment_and_Installation.md)) |
 | The user has not completed registration | The user exists only after finishing registration from the link in the activation email | Configure SMTP so the email is delivered: [Configuring the Email Service](../Smart_Gateway/Using_the_Smart_Gateway/01-Configuring_Email_Service_SMTP.md); check `kubectl logs -n oneconnect -l app=emailbuilder --tail=100` |
 
-> 📌 Set `JWT_SECRET` (Base64, at least 32 bytes) at install.
+> 📌 `JWT_SECRET` comes from `appSecrets.jwtSecret`, which the chart requires at install. Use `openssl rand -hex 32` to generate it.
 
 ### Login succeeds but secured screens return `500`
 
@@ -301,6 +301,8 @@ For granting an existing user access to a SAP Link (a permissions topic), see [S
 ## 8. Credential Change Checklist
 
 Configuration is read at **startup**. Restart the workload after changing a value so it takes effect.
+
+Values that come from the chart secrets (`mysql.*` passwords, `appSecrets.jwtSecret`, `appSecrets.softToken`, `appSecrets.emailPassword`) are changed in `secrets.local.yaml` (or in your own Secret) followed by `helm upgrade`. Database passwords are an exception: the database keeps the passwords it was created with, so change them in the database as well.
 
 | Changed | Restart |
 |---|---|
@@ -327,6 +329,6 @@ kubectl rollout status  deployment/<name> -n oneconnect
 4. Use the SAP Link URL as shown (it already ends in `/synchronous`), and avoid `:` in the password.
 5. Set `deploymenttype` to `CLOUD` or `ONPREMISE`.
 6. Schema Registry needs `schemauser=USER_INFO` and `schemapassword=KEY:SECRET`, configured with `CLOUD`.
-7. The soft security token is validated by the API Gateway on `/logs/reporter/**` and `/metrics/reporter/**`; keep `AUTH_SOFTAUTHTOKEN` and `ONECONNECT_SOFTSECURITYTOKEN` equal.
-8. Login depends on a browser-reachable `NEXT_PUBLIC_API_BASE` and a valid Base64 `JWT_SECRET`.
+7. The soft security token is validated by the API Gateway on `/logs/reporter/**` and `/metrics/reporter/**`; it is set once in `appSecrets.softToken`, and Producers/Consumers created before a change keep the old value.
+8. Login depends on a browser-reachable `NEXT_PUBLIC_API_BASE` and a valid `appSecrets.jwtSecret`.
 9. Always **restart the workload** after changing a credential.

@@ -1,6 +1,6 @@
 # Installation Guide — SmartGateway Helm Chart (Azure AKS, BYOC)
 
-This Helm Chart deploys SmartGateway on Kubernetes (microservices + MySQL + required configuration).
+This Helm Chart deploys SmartGateway on Kubernetes (microservices + MariaDB + required configuration).
 
 
 Optimized for:
@@ -18,7 +18,8 @@ You need:
 - Helm **3.0+**
 - Cluster access (`kubectl` configured)
 - Docker Hub token (**Docker Hub Token will be provided by the Onibex Team**)
-- **PersistentVolume provisioner** (MySQL and DataSyncHub)
+- **PersistentVolume provisioner** (MariaDB and DataSyncHub)
+- **Database:** MariaDB 12.3 LTS, deployed by the chart. Use a new installation: a database volume from a previous MySQL 8 installation cannot be reused.
 - Cloud-specific controllers / CSI drivers (LoadBalancer + Storage)
 
 Verify tooling:
@@ -54,6 +55,50 @@ Run the following command to extract the ZIP file:
 unzip SmartGatewayHelmChart.zip
 cd kafka-aws-test   # folder where Chart.yaml exists
 ```
+
+### Create the secrets files
+
+The chart does not ship any credentials and **refuses to install if they are missing**. Before installing, create these two files in the chart folder. Never commit them or share them; keep a safe copy, because the same values are required on every `helm upgrade`.
+
+Generate each random value with:
+
+```bash
+openssl rand -hex 32
+```
+
+**`secrets.local.yaml`** (OneConnect chart):
+
+```yaml
+mysql:
+  rootPassword: "<random>"
+  password: "<random>"
+appSecrets:
+  jwtSecret: "<random, 64 hex characters>"
+  softToken: "<random>"
+  emailPassword: "<SMTP password or API key>"
+```
+
+**`kafka-platform/secrets.local.yaml`** (AKHQ, the Kafka UI):
+
+```yaml
+akhq:
+  security:
+    jwtSecret: "<random, at least 32 characters>"
+    users:
+      - username: admin
+        password: "<SHA-256 of the AKHQ admin password>"
+        groups: [admin]
+```
+
+To get the SHA-256 of the AKHQ admin password:
+
+```bash
+echo -n 'your-akhq-password' | sha256sum
+```
+
+> 💡 **Using your own secret manager** (for example Azure Key Vault with External Secrets): create the Kubernetes Secrets yourself and set `mysql.existingSecret` (keys `mysql-root-password`, `mysql-database`, `mysql-user`, `mysql-password`) and `appSecrets.existingSecret` (keys `jwt-secret`, `soft-token`, `email-password`) instead of the values above.
+
+> ⚠️ The database passwords are stored in the database the first time it starts. Changing `mysql.rootPassword` or `mysql.password` later does not update an existing database volume (see [Troubleshooting 02 §6](../../Troubleshooting/02-Deployment_and_Installation.md#6-mariadb-will-not-start-or-services-cannot-reach-it)).
 
 ---
 
@@ -102,6 +147,7 @@ helm install kafka-platform ./kafka-platform \
   --namespace kafka \
   --values kafka-platform/values.yaml \
   --values kafka-platform/values-azure.yaml \
+  --values kafka-platform/secrets.local.yaml \
   --set loadBalancer.type=external
 ```
 
@@ -133,6 +179,7 @@ helm install oneconnect . \
   --namespace oneconnect \
   --create-namespace \
   --values values-azure.yaml \
+  --values secrets.local.yaml \
   --set dockerHub.token=[Docker-token] \
   --set networking.loadBalancer.type=external \
   --timeout 15m
@@ -184,8 +231,12 @@ To update an existing deployment:
 helm upgrade oneconnect . \
   --namespace oneconnect \
   --values values-azure.yaml \
-  --set dockerHub.token=[Docker-token]
+  --values secrets.local.yaml \
+  --set dockerHub.token=[Docker-token] \
+  --set networking.loadBalancer.type=external
 ```
+
+> 📌 Always pass the same values files and flags you used at install, including `secrets.local.yaml`.
 
 ---
 

@@ -13,8 +13,8 @@ Before diagnosing anything, know the chart's normal timings:
 | Behavior | Normal value | Implication |
 |---|---|---|
 | Readiness probe initial delay | **300 seconds** on most services | A pod showing `0/1` for the first ~5 minutes is expected |
-| MySQL wait init container (`wait-for-mysql`) | Up to **300 seconds** per attempt | `auth`, `builder`, `cwcback`, `logs`, and `metrics` legitimately sit in `Init:0/1` for minutes |
-| MySQL readiness probe | **200 seconds** initial delay | MySQL is the long pole on a cold install |
+| MariaDB wait init container (`wait-for-mysql`) | Up to **300 seconds** per attempt | `auth`, `builder`, `cwcback`, `logs`, and `metrics` legitimately sit in `Init:0/1` for minutes |
+| MariaDB readiness probe | **200 seconds** initial delay | MariaDB is the long pole on a cold install |
 | `frontend-apigateway-sync` post-install hook | Waits up to **600 s** for the API Gateway load balancer address, then up to **10 min** for the frontend rollout | Helm waits for this hook before reporting success |
 | Recommended install timeout | `--timeout 15m` | Gives the post-install hook the time it needs (see [§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition)) |
 
@@ -37,6 +37,7 @@ Every install uses the same set of flags. The Docker Hub token is supplied at in
 helm install oneconnect . \
   --namespace oneconnect --create-namespace \
   --values values-aws.yaml \
+  --values secrets.local.yaml \
   --set dockerHub.token=dckr_pat_xxxxxxxxxxxx \
   --set networking.loadBalancer.type=external \
   --timeout 15m
@@ -46,15 +47,36 @@ helm install oneconnect . \
 
 > 💡 Use `values-aws.yaml`, `values-azure.yaml`, or `values-gcp.yaml` to match your cluster. The cloud file sets `cloudProvider`, the storage classes ([§4](#4-persistentvolumeclaim-problems)), and the load balancer annotations ([§7](#7-no-external-ip--cannot-reach-the-ui)).
 
+### Missing required secrets
+
+**Symptom** — `helm install` (or `helm template` / `helm upgrade`) stops before creating anything with an error such as:
+
+```
+Error: INSTALLATION FAILED: execution error at (oneconnect/templates/secrets.yaml:...): mysql.rootPassword is required (or set mysql.existingSecret)
+```
+
+**Cause** — the chart ships no credentials. Every install and upgrade must receive them through `secrets.local.yaml` (see the [AWS](../Smart_Gateway/AWS/SmartGateway_Helm_Chart_AWS.md) or [Azure](../Smart_Gateway/Azure/SmartGateway_Helm_Chart_Azure.md) guide) or through existing Kubernetes Secrets.
+
+| Message | Value to provide |
+|---|---|
+| `mysql.rootPassword is required (or set mysql.existingSecret)` | `mysql.rootPassword` |
+| `mysql.password is required (or set mysql.existingSecret)` | `mysql.password` |
+| `appSecrets.jwtSecret is required (or set appSecrets.existingSecret)` | `appSecrets.jwtSecret` |
+| `appSecrets.softToken is required (or set appSecrets.existingSecret)` | `appSecrets.softToken` |
+| `akhq.security.jwtSecret is required` (kafka-platform) | `akhq.security.jwtSecret` in `kafka-platform/secrets.local.yaml` |
+| `akhq.security.users[].password (SHA-256) is required` (kafka-platform) | The SHA-256 of the AKHQ admin password (`echo -n 'pwd' \| sha256sum`) |
+
+**Fix** — add `--values secrets.local.yaml` (or `--values kafka-platform/secrets.local.yaml` for `kafka-platform`) to the command, or set `mysql.existingSecret` / `appSecrets.existingSecret` to Secrets you created.
+
 ### Render the templates without installing
 
 The fastest way to see what Helm is actually producing:
 
 ```bash
-helm template oneconnect . --values values-aws.yaml \
+helm template oneconnect . --values values-aws.yaml --values secrets.local.yaml \
   --set dockerHub.token=dummy > /tmp/rendered.yaml
 
-helm lint . --values values-aws.yaml --set dockerHub.token=dummy
+helm lint . --values values-aws.yaml --values secrets.local.yaml --set dockerHub.token=dummy
 ```
 
 ### A previous release is stuck
@@ -210,7 +232,7 @@ kubectl describe nodes | grep -A6 "Allocated resources"
 
 ## 4. PersistentVolumeClaim Problems
 
-MySQL, DataSyncHub, and the Kafka broker all use persistent storage. Storage issues surface as pods stuck in `Pending` or failing to mount.
+MariaDB, DataSyncHub, and the Kafka broker all use persistent storage. Storage issues surface as pods stuck in `Pending` or failing to mount.
 
 ```bash
 kubectl get pvc -A
@@ -245,6 +267,7 @@ kubectl get storageclass
 helm install oneconnect . \
   --namespace oneconnect --create-namespace \
   --values values-aws.yaml \
+  --values secrets.local.yaml \
   --set dockerHub.token=dckr_pat_xxxxxxxxxxxx \
   --set networking.loadBalancer.type=external \
   --set mysql.persistence.storageClass=gp2 \
@@ -255,6 +278,7 @@ helm install oneconnect . \
 helm install kafka-platform ./kafka-platform \
   --values kafka-platform/values.yaml \
   --values kafka-platform/values-aws.yaml \
+  --values kafka-platform/secrets.local.yaml \
   --set nodePool.storage.class=gp2 \
   --set loadBalancer.type=external
 ```
@@ -294,11 +318,17 @@ A `no` answer, or `forbidden` in the Builder logs, means the Builder's RBAC is n
 
 ---
 
-## 6. MySQL Will Not Start, or Services Cannot Reach It
+## 6. MariaDB Will Not Start, or Services Cannot Reach It
 
-Five services wait for MySQL through a `wait-for-mysql` init container before starting: **`auth`, `builder`, `cwcback`, `logs`, and `metrics`**. The other workloads (`apigateway`, `emailbuilder`, `frontendoneconnect`, `datasynchub`, `otel-collector`) start independently of MySQL.
+Five services wait for MariaDB through a `wait-for-mysql` init container before starting: **`auth`, `builder`, `cwcback`, `logs`, and `metrics`**. The other workloads (`apigateway`, `emailbuilder`, `frontendoneconnect`, `datasynchub`, `otel-collector`) start independently of MariaDB.
 
-The databases are created the first time MySQL starts on an empty volume. The database setup Job, **`<release>-mysql-config`** (for example `oneconnect-mysql-config`), then grants the application user (`mysql.user`, stored in `mysql-secret`) access to the service databases.
+The databases are created the first time MariaDB starts on an empty volume. The database setup Job, **`<release>-mysql-config`** (for example `oneconnect-mysql-config`), then grants the application user (`mysql.user`, stored in `mysql-secret`) access to the service databases.
+
+> ℹ️ The database server is **MariaDB 12.3 LTS**. The Kubernetes objects keep their historical `mysql` names (`mysql-0`, `mysql-secret`, the `mysql-config` Job, the `wait-for-mysql` init container and the `mysql.*` chart values), and the log messages printed by those scripts still say "MySQL". The MariaDB images do not include the `mysql` or `mysqladmin` commands; use `mariadb` and `mariadb-admin` instead:
+>
+> ```bash
+> kubectl exec -it mysql-0 -n oneconnect -- mariadb -uroot -p
+> ```
 
 ```bash
 kubectl get pods -n oneconnect -l app=mysql
@@ -311,7 +341,7 @@ kubectl logs  -n oneconnect -l app=mysql-config
 
 **Symptom** — `auth` is `Running`, while `builder`, `cwcback`, `logs`, or `metrics` pass their init container and then go into `CrashLoopBackOff`. Their logs show `Access denied for user '<mysql.user>'@'%' to database '<database>'`.
 
-**Cause** — the database setup Job did not complete, for example because MySQL was still starting or its PVC was `Pending`.
+**Cause** — the database setup Job did not complete, for example because MariaDB was still starting or its PVC was `Pending`.
 
 **Confirm:**
 
@@ -342,18 +372,19 @@ kubectl logs -n oneconnect -l app=mysql-config
    kubectl rollout restart deployment builder cwcback logs metrics -n oneconnect
    ```
 
-### Other MySQL symptoms
+### Other MariaDB symptoms
 
-While MySQL is not ready, the `wait-for-mysql` init container prints `ERROR: MySQL user not ready after 300 seconds` together with the checks shown above, and continues once MySQL is ready.
+While MariaDB is not ready, the `wait-for-mysql` init container prints `ERROR: MySQL user not ready after 300 seconds` together with the checks shown above, and continues once MariaDB is ready.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| MySQL pod `Pending` | PVC unbound | See [§4](#4-persistentvolumeclaim-problems) |
-| `auth`/`builder`/`cwcback`/`logs`/`metrics` in `Init:0/1` → `Init:Error` while MySQL is not yet ready | MySQL still starting | Wait; the init containers retry and continue once MySQL is `1/1` |
+| MariaDB pod `Pending` | PVC unbound | See [§4](#4-persistentvolumeclaim-problems) |
+| `auth`/`builder`/`cwcback`/`logs`/`metrics` in `Init:0/1` → `Init:Error` while MariaDB is not yet ready | MariaDB still starting | Wait; the init containers retry and continue once MariaDB is `1/1` |
 | Init containers keep failing and the `mysql-config` log shows `ERROR: MySQL did not become ready in time` while `mysql-0` is `Running`, after a reinstall | The `data-mysql-0` volume from a previous install was kept and holds the passwords from that install | Install with the same `mysql.rootPassword` / `mysql.password` as the original install, or (if the data is not needed) delete PVC `data-mysql-0` before reinstalling |
-| `Access denied for user` in the `auth` logs | `mysql-secret` does not match the credentials stored in the database | Confirm the values in `mysql-secret`, or set the password in the database to match |
-| MySQL restarts repeatedly (`OOMKilled`) | Memory limit too low | Raise `mysql.resources.limits.memory` |
-| MySQL restarts with `Liveness probe failed` during its first start | First-time initialization on a slow disk | Raise `mysql.livenessProbe.initialDelaySeconds` |
+| `Access denied for user` in the `auth` logs | `mysql-secret` does not match the credentials stored in the database, for example because `secrets.local.yaml` changed after the first install | Confirm the values in `mysql-secret`, or set the password in the database to match |
+| MariaDB restarts repeatedly (`OOMKilled`) | Memory limit too low | Raise `mysql.resources.limits.memory` |
+| MariaDB restarts with `Liveness probe failed` during its first start | First-time initialization on a slow disk | Raise `mysql.livenessProbe.initialDelaySeconds` |
+| `mysql-0` in `CrashLoopBackOff` after moving from an older chart; the log shows InnoDB or data-dictionary errors | The `data-mysql-0` volume was created by MySQL 8, which MariaDB cannot open | Install in a new namespace (or delete the old PVC, which erases its data). To keep the data, export it from the old installation with a dump and import it into the new one |
 
 > 📌 Keep `mysql.port` at `3306`; the in-cluster clients connect on that port.
 
@@ -398,6 +429,7 @@ The `internal` setting adds a cloud-specific annotation (`aws-load-balancer-inte
 helm upgrade oneconnect . \
   --namespace oneconnect \
   --values values-aws.yaml \
+  --values secrets.local.yaml \
   --set dockerHub.token=dckr_pat_xxxxxxxxxxxx \
   --set networking.loadBalancer.type=external \
   --timeout 15m
@@ -407,6 +439,7 @@ helm upgrade oneconnect . \
 |---|---|
 | Include `--set dockerHub.token` | The secret is rebuilt on each upgrade, so pass the token every time; otherwise new pods go into `ImagePullBackOff` ([§2](#2-imagepullbackoff--errimagepull)) |
 | Include `--set networking.loadBalancer.type=external` | The install guides use this flag. Keep `networking.loadBalancer.type` on every upgrade so the UI and API Gateway load balancers stay public |
+| Include `--values secrets.local.yaml` | The chart requires the secrets on every upgrade; use the **same** values as the first install, because the database keeps the passwords it was created with |
 | Include `--values values-<cloud>.yaml` | Keeps the cloud-specific settings (`cloudProvider`, storage classes, annotations) applied |
 | Include any other `--set` you used | For example storage class overrides ([§4](#4-persistentvolumeclaim-problems)) or `scheduling.tolerations` |
 | Include `--timeout 15m` | The post-install/post-upgrade hook runs again on every upgrade ([§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition)) |
@@ -463,8 +496,9 @@ kubectl get svc internal-apigateway -n oneconnect
 
 1. Give the stack **15 minutes** and always install/upgrade with `--timeout 15m` — 300-second readiness delays and the post-install hook are normal.
 2. Install in order: **Strimzi → kafka-platform → oneconnect**, gating on pod readiness at each phase.
-3. `ImagePullBackOff` is nearly always the **Docker Hub token** — always pass `dockerHub.token`, on install and on every `helm upgrade`.
-4. **Pass the same values file and flags on every upgrade**, especially `--set networking.loadBalancer.type=external` and the token — we recommend keeping them in your own values file.
-5. `Pending` PVCs usually mean the **storage class** in the cloud values file does not exist in your cluster — compare with `kubectl get storageclass` and override if needed.
-6. If `auth` works but `builder`/`cwcback`/`logs`/`metrics` report `Access denied`, [re-run the database setup](#re-run-the-database-setup).
-7. Missing Producer/Consumer pods after creating a SAP Link start with the **Builder's RBAC** — see [06 §8 — The SAP Link Appears in the UI, but Its Pods Are Not Running](./06-No_Data_Reaching_Destination.md#8-the-sap-link-appears-in-the-ui-but-its-pods-are-not-running) for the full diagnosis.
+3. The chart has **no built-in credentials**: create `secrets.local.yaml` (and `kafka-platform/secrets.local.yaml`) before installing, pass them on every install and upgrade, and keep the same values afterwards.
+4. `ImagePullBackOff` is nearly always the **Docker Hub token** — always pass `dockerHub.token`, on install and on every `helm upgrade`.
+5. **Pass the same values file and flags on every upgrade**, especially `--set networking.loadBalancer.type=external` and the token — we recommend keeping them in your own values file.
+6. `Pending` PVCs usually mean the **storage class** in the cloud values file does not exist in your cluster — compare with `kubectl get storageclass` and override if needed.
+7. If `auth` works but `builder`/`cwcback`/`logs`/`metrics` report `Access denied`, [re-run the database setup](#re-run-the-database-setup).
+8. Missing Producer/Consumer pods after creating a SAP Link start with the **Builder's RBAC** — see [06 §8 — The SAP Link Appears in the UI, but Its Pods Are Not Running](./06-No_Data_Reaching_Destination.md#8-the-sap-link-appears-in-the-ui-but-its-pods-are-not-running) for the full diagnosis.

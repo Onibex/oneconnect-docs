@@ -20,13 +20,26 @@ The following environment variables must be added to the email builder deploymen
 | `EMAIL_SMTPFROM` | The sender email address |
 | `EMAIL_SMTPSSLPROTOCOLS` | SSL/TLS protocol version |
 | `EMAIL_USER` | SMTP username or API key |
-| `EMAIL_PASSWORD` | SMTP password or API secret |
+| `EMAIL_PASSWORD` | SMTP password or API secret. Set by the Helm chart from `appSecrets.emailPassword`; do not write it in the deployment (see below) |
 
 ---
 
 ## Kubernetes YAML Example
 
-Add these variables to your email builder deployment:
+### The SMTP password
+
+The Helm chart stores the SMTP password in a Kubernetes Secret and passes it to the email builder as `EMAIL_PASSWORD`. Set it in your `secrets.local.yaml` (the same file used at install, see the [AWS](../AWS/SmartGateway_Helm_Chart_AWS.md) or [Azure](../Azure/SmartGateway_Helm_Chart_Azure.md) guide) and run `helm upgrade` with your usual values files:
+
+```yaml
+appSecrets:
+  emailPassword: "<SMTP password or API key>"
+```
+
+If you manage the Secrets yourself (`appSecrets.existingSecret`), put the password under the `email-password` key of that Secret.
+
+### The other SMTP settings
+
+Add the remaining variables to your email builder deployment:
 
 ```yaml
 env:
@@ -46,8 +59,7 @@ env:
     value: "TLSv1.2"
   - name: EMAIL_USER
     value: "emailuser"
-  - name: EMAIL_PASSWORD
-    value: "emailpassword"
+  # EMAIL_PASSWORD is already set by the chart from appSecrets.emailPassword
 ```
 
 After applying the configuration, redeploy the email builder service.

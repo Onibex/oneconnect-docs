@@ -22,9 +22,9 @@ SAP  ──▶  Producer  ──▶  Kafka  ──▶  Consumer  ──▶  Kafk
 | [API Gateway](#api-gateway) | 2 |
 | [Logs](#logs) | 4 |
 | [SAP OTel Bridge](#sap-otel-bridge) | 2 |
-| [Helm](#helm) | 7 |
+| [Helm](#helm) | 9 |
 | [Kubernetes](#kubernetes) | 11 |
-| [MySQL](#mysql) | 4 |
+| [MariaDB](#mariadb) | 5 |
 
 ---
 
@@ -207,6 +207,8 @@ Messages shown by Helm during install or upgrade.
 | Message or symptom | Meaning | What to do | Guide |
 |---|---|---|---|
 | `no matches for kind "Kafka" in version "kafka.strimzi.io/v1" -- ensure CRDs are installed first` | `kafka-platform` installed before the Strimzi CRDs exist | Install the Strimzi operator first, then retry | [02 §1](./02-Deployment_and_Installation.md#deployment-order-was-not-respected) |
+| `mysql.rootPassword is required` / `mysql.password is required` / `appSecrets.jwtSecret is required` / `appSecrets.softToken is required` | The install or upgrade did not receive the chart secrets | Pass `--values secrets.local.yaml` (or set `mysql.existingSecret` / `appSecrets.existingSecret`) on every install and upgrade | [02 §1](./02-Deployment_and_Installation.md#missing-required-secrets) |
+| `akhq.security.jwtSecret is required` / `akhq.security.users[].password (SHA-256) is required` | `kafka-platform` did not receive the AKHQ secrets | Pass `--values kafka-platform/secrets.local.yaml` with the AKHQ JWT secret and the SHA-256 of the admin password | [02 §1](./02-Deployment_and_Installation.md#missing-required-secrets) |
 | `namespaces "kafka" not found` | `oneconnect` chart installed before the `kafka` namespace exists | Complete phases 1 and 2 (Strimzi, kafka-platform) first | [02 §1](./02-Deployment_and_Installation.md#deployment-order-was-not-respected) |
 | UI not reachable from the internet after `helm upgrade` | `networking.loadBalancer.type=external` not passed on upgrade | Pass the same values file and flags on every upgrade; keep `networking.loadBalancer.type` | [02 §8](./02-Deployment_and_Installation.md#8-upgrades) |
 | `Job.batch "oneconnect-mysql-config" is invalid: spec.template: ... field is immutable` | The database setup Job from the previous revision is still present | Re-run the database setup | [02 §6](./02-Deployment_and_Installation.md#re-run-the-database-setup) |
@@ -229,23 +231,24 @@ Pod states and Kubernetes events.
 | `storageclass.storage.k8s.io "<name>" not found` / `pod has unbound immediate PersistentVolumeClaims` | Storage class from the values file (`gp3`, `managed-premium`, `pd-ssd`) does not exist in the cluster | Compare with `kubectl get storageclass`; create the class or override it with `--set` | [02 §4](./02-Deployment_and_Installation.md#pvcs-pending-the-storage-class-does-not-exist-in-the-cluster) |
 | `waiting for a volume to be created, either by external provisioner` | Cloud CSI driver not installed | Install the EBS / Azure Disk / PD CSI driver | [02 §4](./02-Deployment_and_Installation.md#other-storage-symptoms) |
 | `EXTERNAL-IP` `<pending>` on `internal-frontend` / `internal-apigateway` | No load balancer controller, quota, or subnet tags | Fix the cloud load balancer setup | [02 §7](./02-Deployment_and_Installation.md#7-no-external-ip--cannot-reach-the-ui) |
-| `WeakKeyException` or `DecodingException` in the Auth log on sign-in | `JWT_SECRET` is not Base64 or decodes to fewer than 32 bytes | Set a Base64 `JWT_SECRET` of at least 32 bytes and restart Auth | [03 §7](./03-Authentication_and_Credentials.md#7-cannot-log-in-to-the-platform-ui) |
+| `WeakKeyException` or `DecodingException` in the Auth log on sign-in | `JWT_SECRET` is not Base64 or decodes to fewer than 32 bytes | Set `appSecrets.jwtSecret` (for example the output of `openssl rand -hex 32`), `helm upgrade` and restart Auth | [03 §7](./03-Authentication_and_Credentials.md#7-cannot-log-in-to-the-platform-ui) |
 | Kafka Connect pod `CreateContainerConfigError`: `couldn't find key KAFKAPROPERTIES_SCHEMAREGISTRYURL in Secret ...` | The SAP Link's Kafka secret has no Schema Registry settings | Use a secret with Schema Registry URL and credentials | [04 §10](./04-Kafka_Connectivity.md#10-the-sap-links-kafka-connect-is-not-reachable) |
 | SAP Link listed in the UI, no `<workspace-id>-producer` / `-consumer` pods; events show `exceeded quota` | The namespace quota does not cover the SAP Link's pods | Lower Advanced Settings / replicas or raise the quota | [06 §8](./06-No_Data_Reaching_Destination.md#8-the-sap-link-appears-in-the-ui-but-its-pods-are-not-running) |
 | Consumer `CreateContainerConfigError`: `couldn't find key KAFKAPROPERTIES_SCHEMAREGISTRYURL in Secret oneconnect/<secret-name>` | The SAP Link's Kafka secret has no Schema Registry settings | Create the SAP Link with a secret that includes Schema Registry URL and credentials | [06 §8](./06-No_Data_Reaching_Destination.md#8-the-sap-link-appears-in-the-ui-but-its-pods-are-not-running) |
 
 ---
 
-## MySQL
+## MariaDB
 
 Messages related to the platform database.
 
 | Message or symptom | Meaning | What to do | Guide |
 |---|---|---|---|
-| `ERROR: MySQL user not ready after 300 seconds` (init container `wait-for-mysql`) | MySQL not ready yet when auth/builder/cwcback/logs/metrics started | Wait; the services continue once MySQL is ready. If persistent, check MySQL pod and PVC | [02 §6](./02-Deployment_and_Installation.md#other-mysql-symptoms) |
+| `ERROR: MySQL user not ready after 300 seconds` (init container `wait-for-mysql`) | MariaDB not ready yet when auth/builder/cwcback/logs/metrics started | Wait; the services continue once MariaDB is ready. If persistent, check MariaDB pod and PVC | [02 §6](./02-Deployment_and_Installation.md#other-mariadb-symptoms) |
 | `Access denied for user '<mysql.user>'@'%' to database '<database>'` while `auth` works | The database setup Job did not complete | Re-run the database setup | [02 §6](./02-Deployment_and_Installation.md#re-run-the-database-setup) |
-| `ERROR: MySQL did not become ready in time` (mysql-config Job) | MySQL was not reachable within the Job window, or a retained volume holds different passwords | Check `mysql-0`; on reinstall reuse the original passwords | [02 §6](./02-Deployment_and_Installation.md#other-mysql-symptoms) |
-| `mysql-0` `OOMKilled` / `Liveness probe failed` | Memory limit too low / slow first initialization | Raise `mysql.resources.limits.memory` / `mysql.livenessProbe.initialDelaySeconds` | [02 §6](./02-Deployment_and_Installation.md#other-mysql-symptoms) |
+| `ERROR: MySQL did not become ready in time` (mysql-config Job) | MariaDB was not reachable within the Job window, or a retained volume holds different passwords | Check `mysql-0`; on reinstall reuse the original passwords | [02 §6](./02-Deployment_and_Installation.md#other-mariadb-symptoms) |
+| `mysql-0` `OOMKilled` / `Liveness probe failed` | Memory limit too low / slow first initialization | Raise `mysql.resources.limits.memory` / `mysql.livenessProbe.initialDelaySeconds` | [02 §6](./02-Deployment_and_Installation.md#other-mariadb-symptoms) |
+| `mysql-0` `CrashLoopBackOff` with InnoDB or data-dictionary errors after moving from an older chart | The `data-mysql-0` volume was created by MySQL 8, which MariaDB cannot open | Use a new installation, or move the data with a dump and import | [02 §6](./02-Deployment_and_Installation.md#other-mariadb-symptoms) |
 
 ---
 

@@ -20,7 +20,7 @@ Most issues trace back to a single one of those arrows. Find your symptom below,
 | `helm install` fails, or pods do not reach `Running` | [02 §1 — `helm install` fails immediately](./02-Deployment_and_Installation.md#1-helm-install-fails-immediately) |
 | Pod in `ImagePullBackOff` / `ErrImagePull` | [02 §2 — Image pull](./02-Deployment_and_Installation.md#2-imagepullbackoff--errimagepull) |
 | Pods or PVCs stuck in `Pending` | [02 §3 — Pods `Pending`](./02-Deployment_and_Installation.md#3-pods-stuck-in-pending) · [02 §4 — Storage class](./02-Deployment_and_Installation.md#pvcs-pending-the-storage-class-does-not-exist-in-the-cluster) |
-| `auth` works, but `builder` / `cwcback` / `logs` / `metrics` report `Access denied` | [02 §6 — MySQL grants](./02-Deployment_and_Installation.md#auth-works-but-builder--cwcback--logs--metrics-report-access-denied) |
+| `auth` works, but `builder` / `cwcback` / `logs` / `metrics` report `Access denied` | [02 §6 — MariaDB grants](./02-Deployment_and_Installation.md#auth-works-but-builder--cwcback--logs--metrics-report-access-denied) |
 | No external IP, or the UI does not load | [02 §7 — Cannot reach the UI](./02-Deployment_and_Installation.md#7-no-external-ip--cannot-reach-the-ui) |
 | Helm reports `failed post-install: timed out waiting for the condition` | [02 §9 — Post-install timeout](./02-Deployment_and_Installation.md#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition) |
 | Cannot log in to the platform UI | [03 §7 — Platform login](./03-Authentication_and_Credentials.md#7-cannot-log-in-to-the-platform-ui) |
@@ -94,7 +94,7 @@ Most issues trace back to a single one of those arrows. Find your symptom below,
 Where to look: the Logs panel, `kubectl logs`, the error topics, the log-level rules that decide what reaches each place, and a five-minute health check. **Read this first.**
 
 ### [02 — Deployment & Installation](./02-Deployment_and_Installation.md)
-Helm install and upgrade, the Docker Hub image pull secret, storage classes per cloud, MySQL startup and grants, load balancers, and the post-install hook.
+Helm install and upgrade, the Docker Hub image pull secret, storage classes per cloud, MariaDB startup and grants, load balancers, and the post-install hook.
 
 ### [03 — Authentication & Credentials](./03-Authentication_and_Credentials.md)
 The HTTP status codes returned to SAP, SAP → Producer Basic auth, Kafka SASL, Schema Registry basic auth, the internal soft security token, and platform UI login.

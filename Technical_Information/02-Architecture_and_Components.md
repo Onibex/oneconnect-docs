@@ -99,7 +99,7 @@ For full details, see the [Premium Kafka Connectors manual](./04-Premium_connect
 | **Gateway** | Kubernetes-based microservices - Onibex Smart Gateway |
 | **Streaming** | Apache Kafka 4.2 (KRaft mode), Confluent Schema Registry 7.6.0 |
 | **Serialization** | Apache Avro |
-| **Storage** | MySQL (operational), persistent volumes |
+| **Storage** | MariaDB (operational), persistent volumes |
 | **Cloud** | AWS EKS, Azure AKS, Google Cloud GKE, SAP BTP |
 | **Destinations** | Databricks, Snowflake, ClickHouse, AND MORE! |
 
