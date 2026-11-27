@@ -69,7 +69,7 @@ openssl rand -hex 32
 **`secrets.local.yaml`** (OneConnect chart):
 
 ```yaml
-mysql:
+database:
   rootPassword: "<random>"
   password: "<random>"
 appSecrets:
@@ -96,9 +96,9 @@ To get the SHA-256 of the AKHQ admin password:
 echo -n 'your-akhq-password' | sha256sum
 ```
 
-> 💡 **Using your own secret manager** (for example Azure Key Vault with External Secrets): create the Kubernetes Secrets yourself and set `mysql.existingSecret` (keys `mysql-root-password`, `mysql-database`, `mysql-user`, `mysql-password`) and `appSecrets.existingSecret` (keys `jwt-secret`, `soft-token`, `email-password`) instead of the values above.
+> 💡 **Using your own secret manager** (for example Azure Key Vault with External Secrets): create the Kubernetes Secrets yourself and set `database.existingSecret` (keys `root-password`, `database-name`, `username`, `password`) and `appSecrets.existingSecret` (keys `jwt-secret`, `soft-token`, `email-password`) instead of the values above.
 
-> ⚠️ The database passwords are stored in the database the first time it starts. Changing `mysql.rootPassword` or `mysql.password` later does not update an existing database volume (see [Troubleshooting 02 §6](../../Troubleshooting/02-Deployment_and_Installation.md#6-mariadb-will-not-start-or-services-cannot-reach-it)).
+> ⚠️ The database passwords are stored in the database the first time it starts. Changing `database.rootPassword` or `database.password` later does not update an existing database volume (see [Troubleshooting 02 §6](../../Troubleshooting/02-Deployment_and_Installation.md#6-mariadb-will-not-start-or-services-cannot-reach-it)).
 
 ---
 

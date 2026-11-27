@@ -13,7 +13,7 @@ Before diagnosing anything, know the chart's normal timings:
 | Behavior | Normal value | Implication |
 |---|---|---|
 | Readiness probe initial delay | **300 seconds** on most services | A pod showing `0/1` for the first ~5 minutes is expected |
-| MariaDB wait init container (`wait-for-mysql`) | Up to **300 seconds** per attempt | `auth`, `builder`, `cwcback`, `logs`, and `metrics` legitimately sit in `Init:0/1` for minutes |
+| MariaDB wait init container (`wait-for-database`) | Up to **300 seconds** per attempt | `auth`, `builder`, `cwcback`, `logs`, and `metrics` legitimately sit in `Init:0/1` for minutes |
 | MariaDB readiness probe | **200 seconds** initial delay | MariaDB is the long pole on a cold install |
 | `frontend-apigateway-sync` post-install hook | Waits up to **600 s** for the API Gateway load balancer address, then up to **10 min** for the frontend rollout | Helm waits for this hook before reporting success |
 | Recommended install timeout | `--timeout 15m` | Gives the post-install hook the time it needs (see [§9](#9-helm-reports-failed-post-install-timed-out-waiting-for-the-condition)) |
@@ -52,21 +52,21 @@ helm install oneconnect . \
 **Symptom** — `helm install` (or `helm template` / `helm upgrade`) stops before creating anything with an error such as:
 
 ```
-Error: INSTALLATION FAILED: execution error at (oneconnect/templates/secrets.yaml:...): mysql.rootPassword is required (or set mysql.existingSecret)
+Error: INSTALLATION FAILED: execution error at (oneconnect/templates/secrets.yaml:...): database.rootPassword is required (or set database.existingSecret)
 ```
 
 **Cause** — the chart ships no credentials. Every install and upgrade must receive them through `secrets.local.yaml` (see the [AWS](../Smart_Gateway/AWS/SmartGateway_Helm_Chart_AWS.md) or [Azure](../Smart_Gateway/Azure/SmartGateway_Helm_Chart_Azure.md) guide) or through existing Kubernetes Secrets.
 
 | Message | Value to provide |
 |---|---|
-| `mysql.rootPassword is required (or set mysql.existingSecret)` | `mysql.rootPassword` |
-| `mysql.password is required (or set mysql.existingSecret)` | `mysql.password` |
+| `database.rootPassword is required (or set database.existingSecret)` | `database.rootPassword` |
+| `database.password is required (or set database.existingSecret)` | `database.password` |
 | `appSecrets.jwtSecret is required (or set appSecrets.existingSecret)` | `appSecrets.jwtSecret` |
 | `appSecrets.softToken is required (or set appSecrets.existingSecret)` | `appSecrets.softToken` |
 | `akhq.security.jwtSecret is required` (kafka-platform) | `akhq.security.jwtSecret` in `kafka-platform/secrets.local.yaml` |
 | `akhq.security.users[].password (SHA-256) is required` (kafka-platform) | The SHA-256 of the AKHQ admin password (`echo -n 'pwd' \| sha256sum`) |
 
-**Fix** — add `--values secrets.local.yaml` (or `--values kafka-platform/secrets.local.yaml` for `kafka-platform`) to the command, or set `mysql.existingSecret` / `appSecrets.existingSecret` to Secrets you created.
+**Fix** — add `--values secrets.local.yaml` (or `--values kafka-platform/secrets.local.yaml` for `kafka-platform`) to the command, or set `database.existingSecret` / `appSecrets.existingSecret` to Secrets you created.
 
 ### Render the templates without installing
 
@@ -124,7 +124,7 @@ What you see when a phase is skipped:
 
 ## 2. `ImagePullBackOff` / `ErrImagePull`
 
-**Symptom** — Onibex pods (for example `auth`, `builder`, `mysql-0`, `datasynchub`, or the Producer/Consumer pods) show `ErrImagePull` or `ImagePullBackOff`, typically a few minutes after a successful `helm install` or `helm upgrade`.
+**Symptom** — Onibex pods (for example `auth`, `builder`, `database-0`, `datasynchub`, or the Producer/Consumer pods) show `ErrImagePull` or `ImagePullBackOff`, typically a few minutes after a successful `helm install` or `helm upgrade`.
 
 **Cause** — Usually the Docker Hub token: it was not supplied, has expired, or was not passed again on `helm upgrade`.
 
@@ -178,7 +178,7 @@ After updating the token, the secret changes but running pods do not re-pull. Re
 
 ```bash
 kubectl rollout restart deployment -n oneconnect
-kubectl rollout restart statefulset mysql -n oneconnect
+kubectl rollout restart statefulset database -n oneconnect
 kubectl rollout restart deployment -n datasynchub
 ```
 
@@ -208,7 +208,7 @@ kubectl describe pod -n oneconnect <pod-name> | grep -A10 Events
 
 | Message | Cause | Fix |
 |---|---|---|
-| `Insufficient cpu` / `Insufficient memory` | Node pool too small | Scale the node group, or lower `services.<service>.resources.requests` / `mysql.resources` in values |
+| `Insufficient cpu` / `Insufficient memory` | Node pool too small | Scale the node group, or lower `services.<service>.resources.requests` / `database.resources` in values |
 | `pod has unbound immediate PersistentVolumeClaims` | Storage class missing or no provisioner | See [§4](#4-persistentvolumeclaim-problems) |
 | `had untolerated taint` | Nodes are tainted | Add matching entries under `scheduling.tolerations` in values (see the scope note below) |
 | `didn't match node affinity` | `scheduling.nodeAffinity` rules exclude all nodes | Correct the rules; they apply only with `scheduling.nodeAffinity.enabled: true` |
@@ -226,7 +226,7 @@ kubectl describe nodes | grep -A6 "Allocated resources"
 
 `scheduling.tolerations` applies to the platform Deployments (`apigateway`, `auth`, `builder`, `cwcback`, `datasynchub`, `emailbuilder`, `frontendoneconnect`, `logs`, `metrics`, `otel-collector`) and to the workspace pods the Builder creates.
 
-> 💡 Keep at least one node pool without taints for the database (`mysql-0`) and the setup jobs (`mysql-config`, `frontend-apigateway-sync`). If `mysql-0` is `Pending` with `had untolerated taint` while the other pods schedule, add an untainted node pool.
+> 💡 Keep at least one node pool without taints for the database (`database-0`) and the setup jobs (`database-config`, `frontend-apigateway-sync`). If `database-0` is `Pending` with `had untolerated taint` while the other pods schedule, add an untainted node pool.
 
 ---
 
@@ -236,18 +236,18 @@ MariaDB, DataSyncHub, and the Kafka broker all use persistent storage. Storage i
 
 ```bash
 kubectl get pvc -A
-kubectl describe pvc -n oneconnect data-mysql-0
+kubectl describe pvc -n oneconnect data-database-0
 kubectl describe pvc -n datasynchub st-datasynchub
 kubectl get storageclass
 ```
 
 ### PVCs `Pending`: the storage class does not exist in the cluster
 
-**Symptom** — `data-mysql-0` (namespace `oneconnect`), `st-datasynchub` (namespace `datasynchub`), and/or `data-0-kafka-cluster-main-pool-0` (namespace `kafka`) stay `Pending`. `kubectl describe pvc` shows `storageclass.storage.k8s.io "<name>" not found`, and the pods report `pod has unbound immediate PersistentVolumeClaims`.
+**Symptom** — `data-database-0` (namespace `oneconnect`), `st-datasynchub` (namespace `datasynchub`), and/or `data-0-kafka-cluster-main-pool-0` (namespace `kafka`) stay `Pending`. `kubectl describe pvc` shows `storageclass.storage.k8s.io "<name>" not found`, and the pods report `pod has unbound immediate PersistentVolumeClaims`.
 
 **Cause** — Each cloud values file names a storage class, and the chart uses that name as-is. The class must exist in your cluster.
 
-| Values file | `mysql.persistence.storageClass` | `datasynchub.persistence.storageClassName` | Kafka (`kafka-platform`) `nodePool.storage.class` |
+| Values file | `database.persistence.storageClass` | `datasynchub.persistence.storageClassName` | Kafka (`kafka-platform`) `nodePool.storage.class` |
 |---|---|---|---|
 | `values-aws.yaml` | `gp3` | `gp3` | `gp3` |
 | `values-azure.yaml` | `managed-premium` | `managed-premium` | `managed-premium` |
@@ -270,7 +270,7 @@ helm install oneconnect . \
   --values secrets.local.yaml \
   --set dockerHub.token=dckr_pat_xxxxxxxxxxxx \
   --set networking.loadBalancer.type=external \
-  --set mysql.persistence.storageClass=gp2 \
+  --set database.persistence.storageClass=gp2 \
   --set datasynchub.persistence.storageClassName=gp2 \
   --timeout 15m
 
@@ -289,10 +289,10 @@ helm install kafka-platform ./kafka-platform \
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| PVC stuck `Pending`, no events, `mysql.persistence.storageClass` empty | No default StorageClass in the cluster | Set `mysql.persistence.storageClass` to a class that exists, or mark one as default |
+| PVC stuck `Pending`, no events, `database.persistence.storageClass` empty | No default StorageClass in the cluster | Set `database.persistence.storageClass` to a class that exists, or mark one as default |
 | `provisioning failed` / `waiting for a volume to be created, either by external provisioner` | CSI driver not installed | Install the cloud CSI driver: EBS (EKS), Azure Disk (AKS), PD (GKE) |
 | PVC `Bound` but pod fails to mount | Zone mismatch between volume and node | Use a topology-aware (`WaitForFirstConsumer`) StorageClass |
-| PVC `Pending` with `exceeded quota` | Namespace storage quota reached | Raise the quota, or lower `mysql.persistence.size` / `datasynchub.persistence.size` |
+| PVC `Pending` with `exceeded quota` | Namespace storage quota reached | Raise the quota, or lower `database.persistence.size` / `datasynchub.persistence.size` |
 
 ---
 
@@ -320,26 +320,26 @@ A `no` answer, or `forbidden` in the Builder logs, means the Builder's RBAC is n
 
 ## 6. MariaDB Will Not Start, or Services Cannot Reach It
 
-Five services wait for MariaDB through a `wait-for-mysql` init container before starting: **`auth`, `builder`, `cwcback`, `logs`, and `metrics`**. The other workloads (`apigateway`, `emailbuilder`, `frontendoneconnect`, `datasynchub`, `otel-collector`) start independently of MariaDB.
+Five services wait for MariaDB through a `wait-for-database` init container before starting: **`auth`, `builder`, `cwcback`, `logs`, and `metrics`**. The other workloads (`apigateway`, `emailbuilder`, `frontendoneconnect`, `datasynchub`, `otel-collector`) start independently of MariaDB.
 
-The databases are created the first time MariaDB starts on an empty volume. The database setup Job, **`<release>-mysql-config`** (for example `oneconnect-mysql-config`), then grants the application user (`mysql.user`, stored in `mysql-secret`) access to the service databases.
+The databases are created the first time MariaDB starts on an empty volume. The database setup Job, **`<release>-database-config`** (for example `oneconnect-database-config`), then grants the application user (`database.user`, stored in `database-secret`) access to the service databases.
 
-> ℹ️ The database server is **MariaDB 12.3 LTS**. The Kubernetes objects keep their historical `mysql` names (`mysql-0`, `mysql-secret`, the `mysql-config` Job, the `wait-for-mysql` init container and the `mysql.*` chart values), and the log messages printed by those scripts still say "MySQL". The MariaDB images do not include the `mysql` or `mysqladmin` commands; use `mariadb` and `mariadb-admin` instead:
+> ℹ️ The database server is **MariaDB 12.3 LTS**. Its Kubernetes objects are named `database` (`database-0`, `database-secret`, the `database-config` Job and the `wait-for-database` init container), and its chart values are under `database.*`. The MariaDB images do not include the `mysql` or `mysqladmin` commands; use `mariadb` and `mariadb-admin` instead:
 >
 > ```bash
-> kubectl exec -it mysql-0 -n oneconnect -- mariadb -uroot -p
+> kubectl exec -it database-0 -n oneconnect -- mariadb -uroot -p
 > ```
 
 ```bash
-kubectl get pods -n oneconnect -l app=mysql
-kubectl logs  -n oneconnect -l app=mysql --tail=100
+kubectl get pods -n oneconnect -l app=database
+kubectl logs  -n oneconnect -l app=database --tail=100
 kubectl get jobs -n oneconnect
-kubectl logs  -n oneconnect -l app=mysql-config
+kubectl logs  -n oneconnect -l app=database-config
 ```
 
 ### `auth` works, but `builder` / `cwcback` / `logs` / `metrics` report `Access denied`
 
-**Symptom** — `auth` is `Running`, while `builder`, `cwcback`, `logs`, or `metrics` pass their init container and then go into `CrashLoopBackOff`. Their logs show `Access denied for user '<mysql.user>'@'%' to database '<database>'`.
+**Symptom** — `auth` is `Running`, while `builder`, `cwcback`, `logs`, or `metrics` pass their init container and then go into `CrashLoopBackOff`. Their logs show `Access denied for user '<database.user>'@'%' to database '<database>'`.
 
 **Cause** — the database setup Job did not complete, for example because MariaDB was still starting or its PVC was `Pending`.
 
@@ -349,22 +349,22 @@ kubectl logs  -n oneconnect -l app=mysql-config
 kubectl get jobs -n oneconnect
 # A completed Job shows COMPLETIONS 1/1
 
-kubectl logs -n oneconnect -l app=mysql-config
+kubectl logs -n oneconnect -l app=database-config
 # Success ends with:
 #   ✓ Granted privileges on: <databases>
 #   === Configuration Complete ===
 # A timeout shows:
-#   ERROR: MySQL did not become ready in time
+#   ERROR: Database did not become ready in time
 ```
 
 **Fix** — re-run the database setup:
 
 #### Re-run the database setup
 
-1. Make sure `mysql-0` is `1/1 Running`.
+1. Make sure `database-0` is `1/1 Running`.
 2. Delete the setup Job:
    ```bash
-   kubectl delete job oneconnect-mysql-config -n oneconnect
+   kubectl delete job oneconnect-database-config -n oneconnect
    ```
 3. Run `helm upgrade` with the same values file and flags you used at install ([§8](#8-upgrades)).
 4. Wait for `kubectl get jobs -n oneconnect` to show `1/1`, then restart the affected services:
@@ -374,19 +374,19 @@ kubectl logs -n oneconnect -l app=mysql-config
 
 ### Other MariaDB symptoms
 
-While MariaDB is not ready, the `wait-for-mysql` init container prints `ERROR: MySQL user not ready after 300 seconds` together with the checks shown above, and continues once MariaDB is ready.
+While MariaDB is not ready, the `wait-for-database` init container prints `ERROR: Database user not ready after 300 seconds` together with the checks shown above, and continues once MariaDB is ready.
 
 | Symptom | Cause | Fix |
 |---|---|---|
 | MariaDB pod `Pending` | PVC unbound | See [§4](#4-persistentvolumeclaim-problems) |
 | `auth`/`builder`/`cwcback`/`logs`/`metrics` in `Init:0/1` → `Init:Error` while MariaDB is not yet ready | MariaDB still starting | Wait; the init containers retry and continue once MariaDB is `1/1` |
-| Init containers keep failing and the `mysql-config` log shows `ERROR: MySQL did not become ready in time` while `mysql-0` is `Running`, after a reinstall | The `data-mysql-0` volume from a previous install was kept and holds the passwords from that install | Install with the same `mysql.rootPassword` / `mysql.password` as the original install, or (if the data is not needed) delete PVC `data-mysql-0` before reinstalling |
-| `Access denied for user` in the `auth` logs | `mysql-secret` does not match the credentials stored in the database, for example because `secrets.local.yaml` changed after the first install | Confirm the values in `mysql-secret`, or set the password in the database to match |
-| MariaDB restarts repeatedly (`OOMKilled`) | Memory limit too low | Raise `mysql.resources.limits.memory` |
-| MariaDB restarts with `Liveness probe failed` during its first start | First-time initialization on a slow disk | Raise `mysql.livenessProbe.initialDelaySeconds` |
-| `mysql-0` in `CrashLoopBackOff` after moving from an older chart; the log shows InnoDB or data-dictionary errors | The `data-mysql-0` volume was created by MySQL 8, which MariaDB cannot open | Install in a new namespace (or delete the old PVC, which erases its data). To keep the data, export it from the old installation with a dump and import it into the new one |
+| Init containers keep failing and the `database-config` log shows `ERROR: Database did not become ready in time` while `database-0` is `Running`, after a reinstall | The `data-database-0` volume from a previous install was kept and holds the passwords from that install | Install with the same `database.rootPassword` / `database.password` as the original install, or (if the data is not needed) delete PVC `data-database-0` before reinstalling |
+| `Access denied for user` in the `auth` logs | `database-secret` does not match the credentials stored in the database, for example because `secrets.local.yaml` changed after the first install | Confirm the values in `database-secret`, or set the password in the database to match |
+| MariaDB restarts repeatedly (`OOMKilled`) | Memory limit too low | Raise `database.resources.limits.memory` |
+| MariaDB restarts with `Liveness probe failed` during its first start | First-time initialization on a slow disk | Raise `database.livenessProbe.initialDelaySeconds` |
+| After upgrading from an older chart (MySQL 8, objects named `mysql`), the platform starts with empty databases | The new chart creates a new `database-0` with a new `data-database-0` volume; the old `mysql-0` data (`data-mysql-0`) is not reused, because MariaDB cannot open a MySQL 8 volume | Install in a new namespace. To keep the data, export it from the old installation with a dump and import it into the new one; delete the old `data-mysql-0` PVC only when the data is no longer needed |
 
-> 📌 Keep `mysql.port` at `3306`; the in-cluster clients connect on that port.
+> 📌 Keep `database.port` at `3306`; the in-cluster clients connect on that port.
 
 ---
 
@@ -456,8 +456,8 @@ helm history oneconnect -n oneconnect
 
 | Message during upgrade | Meaning | Fix |
 |---|---|---|
-| `Job.batch "oneconnect-mysql-config" is invalid: spec.template: ... field is immutable` | The database setup Job from the previous revision is still present | [Re-run the database setup](#re-run-the-database-setup) |
-| `StatefulSet.apps "mysql" is invalid: spec: Forbidden: updates to statefulset spec for fields other than ...` or `PersistentVolumeClaim "st-datasynchub" is invalid: spec: Forbidden: spec is immutable after creation` | `mysql.persistence.*` or `datasynchub.persistence.storageClassName` differs from the installed value | Use the same storage values as the original install |
+| `Job.batch "oneconnect-database-config" is invalid: spec.template: ... field is immutable` | The database setup Job from the previous revision is still present | [Re-run the database setup](#re-run-the-database-setup) |
+| `StatefulSet.apps "database" is invalid: spec: Forbidden: updates to statefulset spec for fields other than ...` or `PersistentVolumeClaim "st-datasynchub" is invalid: spec: Forbidden: spec is immutable after creation` | `database.persistence.*` or `datasynchub.persistence.storageClassName` differs from the installed value | Use the same storage values as the original install |
 
 ---
 

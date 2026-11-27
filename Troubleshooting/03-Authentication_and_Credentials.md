@@ -277,7 +277,7 @@ kubectl get svc internal-apigateway -n oneconnect
 | Cause | Confirm | Fix |
 |---|---|---|
 | `JWT_SECRET` is not valid Base64, or decodes to fewer than 32 bytes | Auth log shows `WeakKeyException` or `DecodingException` on sign-in | Set `appSecrets.jwtSecret` to a valid value (the output of `openssl rand -hex 32` works), run `helm upgrade` and restart Auth |
-| Auth cannot reach its database | Auth log shows JDBC connection errors | Confirm MariaDB is running and that `mysql-secret` matches the database ([02 — Installation & Deployment](./02-Deployment_and_Installation.md)) |
+| Auth cannot reach its database | Auth log shows JDBC connection errors | Confirm MariaDB is running and that `database-secret` matches the database ([02 — Installation & Deployment](./02-Deployment_and_Installation.md)) |
 | The user has not completed registration | The user exists only after finishing registration from the link in the activation email | Configure SMTP so the email is delivered: [Configuring the Email Service](../Smart_Gateway/Using_the_Smart_Gateway/01-Configuring_Email_Service_SMTP.md); check `kubectl logs -n oneconnect -l app=emailbuilder --tail=100` |
 
 > 📌 `JWT_SECRET` comes from `appSecrets.jwtSecret`, which the chart requires at install. Use `openssl rand -hex 32` to generate it.
@@ -302,7 +302,7 @@ For granting an existing user access to a SAP Link (a permissions topic), see [S
 
 Configuration is read at **startup**. Restart the workload after changing a value so it takes effect.
 
-Values that come from the chart secrets (`mysql.*` passwords, `appSecrets.jwtSecret`, `appSecrets.softToken`, `appSecrets.emailPassword`) are changed in `secrets.local.yaml` (or in your own Secret) followed by `helm upgrade`. Database passwords are an exception: the database keeps the passwords it was created with, so change them in the database as well.
+Values that come from the chart secrets (`database.*` passwords, `appSecrets.jwtSecret`, `appSecrets.softToken`, `appSecrets.emailPassword`) are changed in `secrets.local.yaml` (or in your own Secret) followed by `helm upgrade`. Database passwords are an exception: the database keeps the passwords it was created with, so change them in the database as well.
 
 | Changed | Restart |
 |---|---|
